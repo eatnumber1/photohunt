@@ -237,17 +237,17 @@ end
 
 get '/api/clues', :provides => 'json' do
 	pass unless request.accept? 'application/json'
-	Clue.all.to_json
+	return PhotohuntError::ERR_SUCCESS.merge({ :data => Clue.all }).to_json
 end
 
 get '/api/info', :provides => 'json' do
 	pass unless request.accept? 'application/json'
 	team = authenticate
-	{
+	return PhotohuntError::ERR_SUCCESS.merge({ :data => {
 		:team => team.name,
 		:startTime => team.game.start,
 		:endTime => team.game.end,
 		:maxPhotos => team.game.maxPhotos,
 		:maxJudgedPhotos => team.game.maxJudgedPhotos
-	}.to_json
+	}}).to_json
 end
