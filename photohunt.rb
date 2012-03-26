@@ -19,49 +19,42 @@ DB.logger = Logger.new($stdout)
 DB.sql_log_level = :debug
 
 DB.transaction do
-	DB.create_table? :bonuses do
+	DB.create_table! :clues_tags do
+		foreign_key :clue_id, :clues, :null => false
+		foreign_key :tag_id, :tags, :null => false
+	end
+	
+	DB.create_table! :clue_completions do
+		foreign_key :photo_id, :photos, :null => false
+		foreign_key :clue_id, :clues, :null => false
+		foreign_key :bonus_id, :bonuses
+	end
+
+	DB.create_table! :bonuses do
 		primary_key :id
 		foreign_key :clue_id, :clues
 		String :description, :null => false
 		Integer :points, :null => false
 	end
 
-	DB.create_table? :clues_tags do
-		foreign_key :clue_id, :clues, :null => false
-		foreign_key :tag_id, :tags, :null => false
-	end
-	
-	DB.create_table? :clue_completions do
-		foreign_key :photo_id, :photos, :null => false
-		foreign_key :clue_id, :clues, :null => false
-		foreign_key :bonus_id, :bonuses
-	end
-
-	DB.create_table? :tags do
+	DB.create_table! :tags do
 		primary_key :id
 		String :tag, :unique => true, :null => false
 	end
 
-	DB.create_table? :clues do
+	DB.create_table! :clues do
 		primary_key :id
 		String :description, :null => false
 		Integer :points, :null => false
 	end
-	
-	DB.create_table? :teams do
-		primary_key :id
-		foreign_key :game_id, :games
-		String :name, :null => false
-		FalseClass :finished, :null => false, :default => false
-	end
 
-	DB.create_table? :tokens do
+	DB.create_table! :tokens do
 		primary_key :id
 		foreign_key :team_id, :teams
 		String :token, :null => false
 	end
 
-	DB.create_table? :photos do
+	DB.create_table! :photos do
 		primary_key :id
 		foreign_key :team_id, :teams
 		String :hash, :null => false
@@ -69,8 +62,15 @@ DB.transaction do
 		FalseClass :judge, :null => false, :default => false
 		String :notes, :text => true
 	end
+	
+	DB.create_table! :teams do
+		primary_key :id
+		foreign_key :game_id, :games
+		String :name, :null => false
+		FalseClass :finished, :null => false, :default => false
+	end
 
-	DB.create_table? :games do
+	DB.create_table! :games do
 		primary_key :id
 		Time :start
 		Time :end
@@ -223,6 +223,7 @@ put '/api/photos/edit', :provides => 'json' do
 
 	data = JSON.parse(request.body.read)
 	# TODO: Handle calling edit on a photo that doesn't exist
+	# TODO: Add a find filter on the team_id
 	photo = Photo.find(:hash => params[:id])
 	photo.update(:judge => data["judge"], :notes => data["notes"])
 	data["clues"].each do |clue|
