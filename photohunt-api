@@ -1,0 +1,114 @@
+Semi-formally, the JSON communicated will follow the following EBNF
+(https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form) grammar (note
+that this is only roughly EBNF):
+
+(* Valid error codes *)
+ERR_SUCCESS = 0 (* No error occurred *)
+ERR_UNSPEC = 1 (* Unspecified error. Message contains additional information *)
+ERR_NOTAUTH = 2 (* Authorization token invalid *)
+ERR_GAMEOVER = 3 (* Photohunt competition is over. No judged submissions allowed *)
+(* Additional error codes will be added during development *)
+
+(* Example
+	{
+		code=0,
+		message="No Error",
+		data=nil
+	}
+*)
+response = "{",
+		"code=", (
+			ERR_SUCCESS |
+			ERR_UNSPEC |
+			ERR_NOTAUTH |
+			ERR_GAMEOVER
+		), ",",
+		"message=", "\"", string, "\"", ",",
+		"data=", data,
+	"}";
+data = ( "{", clue-list, "}" ) | ( "\"", photo_id, "\"" ) | "nil";
+
+(* Example
+	{
+		clues=[
+			{
+				id=1,
+				bonus_id=[ 1, 2, 5 ]
+			}
+		],
+		judge=False,
+		notes="Pedobear is hiding behind the sign"
+	}
+*)
+photo-metatadata = "{",
+		"clues=", "[", {
+			"{",
+				"id=", clue_id, ",",
+				"bonus_id=", "[" {
+					bonus_id,
+				}, "]",
+			"}",
+		}, "]", ",",
+		"judge=", ( "False" | "True" ), ","
+		"notes=", "\"", string, "\""
+	"}";
+
+(* Example
+	[
+		{
+			id=1,
+			description="Your team on Marketplace Mall island.",
+			points=100,
+			bonuses=[
+				{
+					id=1,
+					description="with a duck",
+					points=10
+				}
+			],
+			tags=[ "Location", "Duck" ]
+		}
+	]
+*)
+clue-list = "[", {
+		"{",
+			"id=", number, ",",
+			"description=", "\"", string "\"", ",",
+			"points=", number, ",",
+			"bonuses=", "[", {
+				"{",
+					"id=", number, ",",
+					"description=", "\"", string, "\"", ",",
+					"points=", number,
+				"}",
+			}, "]",
+		"}",
+	}, "]";
+
+(* Example - Uses RFC 2616 dateTime format
+	{
+		"team": "faggot",
+		"startTime": "<start-time>",
+		"endTime": "<end-time>",
+		"maxPhotos": 30,
+		"maxJudgeablePhotos": 24
+	}
+*)
+info = TODO
+
+The GET/PUT requests will look like the following:
+Content-Type: application/json
+photohunt.csh.rit.edu/api
+	PUT /photos/new?token=:oauth_token
+		-> Photo's binary data
+		<- response (repsponse=photo_id)
+	PUT /photos/edit?id=:photo_id&token=:oauth_token
+		-> photo-metadata
+		<- response (data=nil)
+	GET /info?token=:oauth_token
+		<- response (data=info)
+	GET /clues
+		<- response (data=clues)
+	TODO: OAuth registration
+
+vim: sw=4 ts=4 sts=4 tw=80
