@@ -222,12 +222,13 @@ put '/api/photos/new', :provides => 'json' do
 	pass unless request.accept? 'application/json'
 	team = authenticate
 
-	guid = Digest::SHA1.hexdigest(request.body.read)
+	data = request.body.read
+	guid = Digest::SHA1.hexdigest(data)
 	photo = Photo[guid]
 	if( photo == nil )
 		photo = Photo.new(
 			:guid => guid,
-			:data => request.body.read
+			:data => data
 		)
 		team.add_photo(photo)
 	end
@@ -326,7 +327,7 @@ get '/api/export.zip', :provides => 'zip' do
 							points += clue.points
 							clue_completion.bonus_completions.each do |bonus_completion|
 								bonus = bonus_completion.bonus
-								clue_str.printf("\t\t\t%+d\t%s\n", bonus.points, bonus.description)
+								clue_str.printf("\t\t\t%+d\t\t%s\n", bonus.points, bonus.description)
 								points += bonus.points
 							end
 						end
