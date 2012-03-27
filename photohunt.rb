@@ -36,8 +36,7 @@ DB.transaction do
 	
 	DB.create_table! :clue_completions do
 		primary_key :id
-		foreign_key :photo_id, :photos, :null => false, :type => :varchar
-		#foreign_key :photo_id, :photos, :null => false
+		foreign_key :photo_id, :photos, :null => false, :type => String
 		foreign_key :clue_id, :clues, :null => false
 	end
 
@@ -67,11 +66,8 @@ DB.transaction do
 	end
 
 	DB.create_table! :photos do
-		#primary_key :id
 		foreign_key :team_id, :teams
-		#String :guid, :null => false
 		String :guid, :null => false, :primary_key => true
-		#primary_key :guid, :null => false, :auto_increment => false, :type => :varchar
 		File :data, :null => false
 		FalseClass :judge
 		String :notes, :text => true
@@ -196,10 +192,9 @@ DB.transaction do
 	)
 	team.add_photo(photo)
 	team.add_token(:token => "foo")
-	clue_completion = ClueCompletion.new(:photo => photo, :clue => clue)
+	clue_completion = ClueCompletion.new(:clue => clue)
 	photo.add_clue_completion(clue_completion)
-	bonus_completion = BonusCompletion.new(:clue_completion => clue_completion, :bonus => bonus)
-	clue_completion.add_bonus_completion(bonus_completion)
+	clue_completion.add_bonus_completion(:bonus => bonus)
 end
 
 module PhotohuntError
@@ -279,7 +274,7 @@ get '/api/export.zip', :provides => 'zip' do
 
 	tempfile = Tempfile.new("photohunt-export")
 	path = tempfile.path
-	# This isn't secure
+	# TODO: This isn't secure
 	tempfile.unlink
 	Zip::ZipFile.open(path, Zip::ZipFile::CREATE) do |zipfile|
 		dirbase = "photohunt"
@@ -293,7 +288,6 @@ get '/api/export.zip', :provides => 'zip' do
 			zipfile.file.open("#{curdir}/#{team.name}.txt", "w") do |doc|
 				doc.puts "Team #{team.name}\n"
 
-				# TODO: Add submission time to the export file.
 				team.photos.each do |photo|
 					exposure = "unavailable"
 					filename = photoctr.to_s
@@ -311,12 +305,12 @@ get '/api/export.zip', :provides => 'zip' do
 						file.write(photo.data)
 					end
 
+					# TODO: Tell if it's late.
 					doc.printf("\n%d.\n", photoctr)
 					doc.printf("\tJudged: %s\n", photo.judge) unless photo.judge == nil
 					doc.printf("\tExposure Time: %s\n", exposure)
 					# TODO: Make sure updates don't change submission time.
 					doc.printf("\tSubmission Time: %s\n", photo.submission)
-					# TODO: Tell if it's late.
 					if photo.clue_completions.length != 0
 						points = 0
 						clue_str = StringIO.new
