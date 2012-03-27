@@ -244,6 +244,8 @@ get '/api/info', :provides => 'json' do
 	}}).to_json
 end
 
+# The zipfile library seems to create temporary working files in /tmp and
+# doesn't delete them. I can't help this
 get '/api/export.zip', :provides => 'zip' do
 	pass unless request.accept? 'application/zip'
 
@@ -298,5 +300,8 @@ get '/api/export.zip', :provides => 'zip' do
 			end
 		end
 	end
-	return File.open(path) { |file| file.read }
+	return File.open(path) do |file|
+		File.unlink(path)
+		file.read
+	end
 end
