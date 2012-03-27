@@ -28,11 +28,17 @@ DB.transaction do
 		foreign_key :clue_id, :clues, :null => false
 		foreign_key :tag_id, :tags, :null => false
 	end
+
+	DB.create_table! :bonus_completions do
+		foreign_key :clue_completion_id, :clue_completions
+		foreign_key :bonus_id, :bonuses, :null => false
+	end
 	
 	DB.create_table! :clue_completions do
-		foreign_key :photo_id, :photos, :null => false
+		primary_key :id
+		foreign_key :photo_id, :photos, :null => false, :type => :varchar
+		#foreign_key :photo_id, :photos, :null => false
 		foreign_key :clue_id, :clues, :null => false
-		foreign_key :bonus_id, :bonuses
 	end
 
 	DB.create_table! :bonuses do
@@ -49,6 +55,7 @@ DB.transaction do
 
 	DB.create_table! :clues do
 		primary_key :id
+		foreign_key :game_id, :games, :null => false
 		String :description, :null => false
 		Integer :points, :null => false
 	end
@@ -60,12 +67,15 @@ DB.transaction do
 	end
 
 	DB.create_table! :photos do
-		primary_key :id
+		#primary_key :id
 		foreign_key :team_id, :teams
-		String :hash, :null => false
+		#String :guid, :null => false
+		String :guid, :null => false, :primary_key => true
+		#primary_key :guid, :null => false, :auto_increment => false, :type => :varchar
 		File :data, :null => false
 		FalseClass :judge
 		String :notes, :text => true
+		DateTime :submission, :default => "datetime('now','localtime')".lit
 	end
 	
 	DB.create_table! :teams do
@@ -77,8 +87,8 @@ DB.transaction do
 
 	DB.create_table! :games do
 		primary_key :id
-		Time :start
-		Time :end
+		DateTime :start
+		DateTime :end
 		Integer :maxPhotos
 		Integer :maxJudgedPhotos
 	end
@@ -120,13 +130,19 @@ class Team < Sequel::Model
 end
 
 class Photo < Sequel::Model
+	unrestrict_primary_key
 	one_to_many :clue_completions
 end
 
 class ClueCompletion < Sequel::Model
-	no_primary_key
 	many_to_one :photo
 	many_to_one :clue
+	one_to_many :bonus_completions
+end
+
+class BonusCompletion < Sequel::Model
+	set_primary_key [:clue_completion_id, :bonus_id]
+	many_to_one :clue_completion
 	many_to_one :bonus
 end
 
@@ -136,6 +152,7 @@ end
 
 class Game < Sequel::Model
 	one_to_many :teams
+	one_to_many :clues
 end
 
 DB.transaction do
@@ -145,15 +162,16 @@ DB.transaction do
 		:maxPhotos => 30,
 		:maxJudgedPhotos => 24
 	)
-	team = Team.create(
+	team = Team.new(
 		:name => "faggot",
 		:finished => false
 	)
 	game.add_team(team)
-	clue = Clue.create(
+	clue = Clue.new(
 		:description => "Your team on Marketplace Mall island.",
 		:points => 100
 	)
+	game.add_clue(clue)
 	clue.add_tag(:tag => "Location")
 	clue.add_tag(:tag => "Goose")
 	bonus = Bonus.new(
@@ -166,20 +184,22 @@ DB.transaction do
 		:points => 1000
 	)
 	data = nil
-	hash = File.open("b") do |f|
+	guid = File.open("b") do |f|
 		data = f.read
 		Digest::SHA1.hexdigest(data)
 	end
-	photo = Photo.create(
-		:hash => hash,
+	photo = Photo.new(
+		:guid => guid,
 		:judge => true,
 		:notes => "With a goose!",
 		:data => data
 	)
 	team.add_photo(photo)
 	team.add_token(:token => "foo")
-	photo.add_clue_completion(:clue => clue, :bonus => nil)
-	photo.add_clue_completion(:clue => clue, :bonus => bonus)
+	clue_completion = ClueCompletion.new(:photo => photo, :clue => clue)
+	photo.add_clue_completion(clue_completion)
+	bonus_completion = BonusCompletion.new(:clue_completion => clue_completion, :bonus => bonus)
+	clue_completion.add_bonus_completion(bonus_completion)
 end
 
 module PhotohuntError
@@ -200,12 +220,18 @@ end
 
 put '/api/photos/new', :provides => 'json' do
 	pass unless request.accept? 'application/json'
-	authenticate
+	team = authenticate
 
-	return PhotohuntError::ERR_SUCCESS.merge({ :data => Photo.create(
-		:hash => Digest::SHA1.hexdigest(request.body.read),
-		:data => request.body.read
-	).hash }).to_json
+	guid = Digest::SHA1.hexdigest(request.body.read)
+	photo = Photo[guid]
+	if( photo == nil )
+		photo = Photo.new(
+			:guid => guid,
+			:data => request.body.read
+		)
+		team.add_photo(photo)
+	end
+	return PhotohuntError::ERR_SUCCESS.merge({ :data => photo.guid }).to_json
 end
 
 put '/api/photos/edit', :provides => 'json' do
@@ -215,7 +241,7 @@ put '/api/photos/edit', :provides => 'json' do
 	data = JSON.parse(request.body.read)
 	# TODO: Handle calling edit on a photo that doesn't exist
 	# TODO: Add a find filter on the team_id
-	photo = Photo.find(:hash => params[:id])
+	photo = Photo.find(:guid => params[:id])
 	photo.update(:judge => data["judge"], :notes => data["notes"])
 	data["clues"].each do |clue|
 		photo.add_clue_completion(:clue => Clue[clue["id"]], :bonus => nil)
@@ -248,6 +274,7 @@ end
 # doesn't delete them. I can't help this
 get '/api/export.zip', :provides => 'zip' do
 	pass unless request.accept? 'application/zip'
+	# TODO: Add judges-only auth.
 
 	tempfile = Tempfile.new("photohunt-export")
 	path = tempfile.path
@@ -267,32 +294,52 @@ get '/api/export.zip', :provides => 'zip' do
 
 				# TODO: Add submission time to the export file.
 				team.photos.each do |photo|
-					exposure = nil
+					exposure = "unavailable"
+					filename = photoctr.to_s
 					mime = MIME::Types[String.file_type(photo.data, :mime)].first
-					case mime.content_type
-					when "image/jpeg"
-						exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
-					when "image/tiff"
-						exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
-					else
-						exposure = "unavailable"
+					if mime != nil
+						case mime.content_type
+						when "image/jpeg"
+							exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
+						when "image/tiff"
+							exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
+						end
+						filename += ".#{mime.extensions.first}" if mime.extensions != nil
 					end
-					zipfile.file.open("#{curdir}/#{photoctr}.#{mime.extensions.first}", "w") do |file|
+					zipfile.file.open("#{curdir}/#{filename}", "w") do |file|
 						file.write(photo.data)
 					end
 
-					doc.printf("%-4s Judged: %s\n", "#{photoctr}.", photo.judge)
+					doc.printf("\n%d.\n", photoctr)
+					doc.printf("\tJudged: %s\n", photo.judge) unless photo.judge == nil
 					doc.printf("\tExposure Time: %s\n", exposure)
-					doc.printf("\tClues:\n")
-					#photo.clue_completions.each do |completion|
-					#	completion.clue
-					#		doc.printf "\t\t"
-					#	end
-					#end
+					# TODO: Make sure updates don't change submission time.
+					doc.printf("\tSubmission Time: %s\n", photo.submission)
+					# TODO: Tell if it's late.
+					if photo.clue_completions.length != 0
+						points = 0
+						clue_str = StringIO.new
+						clue_str.printf("\tClues:\n")
+						photo.clue_completions.each do |clue_completion|
+							clue = clue_completion.clue
+							clue_str.printf("\t\t%4s\t%+d\t%s\n", "#{clue.id}.", clue.points, clue.description)
+							points += clue.points
+							clue_completion.bonus_completions.each do |bonus_completion|
+								bonus = bonus_completion.bonus
+								clue_str.printf("\t\t\t%+d\t%s\n", bonus.points, bonus.description)
+								points += bonus.points
+							end
+						end
+						doc.printf("\tPoints: %+d\n", points)
+						clue_str.rewind
+						doc.printf("%s", clue_str.read)
+					end
 
-					doc.printf("\tNotes:\n")
-					# TODO: Pretty-print this.
-					doc.printf("\t\t%s\n", photo.notes)
+					if photo.notes != nil
+						doc.printf("\tNotes:\n")
+						# TODO: Pretty-print this.
+						doc.printf("\t\t%s\n", photo.notes)
+					end
 
 					photoctr += 1
 
