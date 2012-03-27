@@ -8,6 +8,7 @@ require 'filemagic/ext'
 require 'mime/types'
 require 'sequel'
 require 'zip/zipfilesystem'
+require 'exifr'
 
 require 'logger'
 
@@ -262,13 +263,24 @@ get '/api/export.zip', :provides => 'zip' do
 			zipfile.file.open("#{curdir}/#{team.name}.txt", "w") do |doc|
 				doc.puts "Team #{team.name}\n"
 
+				# TODO: Add submission time to the export file.
 				team.photos.each do |photo|
-					ext = MIME::Types[String.file_type(photo.data, :mime)].first.extensions.first
-					zipfile.file.open("#{curdir}/#{photoctr}.#{ext}", "w") do |file|
+					exposure = nil
+					mime = MIME::Types[String.file_type(photo.data, :mime)].first
+					case mime.content_type
+					when "image/jpeg"
+						exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
+					when "image/tiff"
+						exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
+					else
+						exposure = "unavailable"
+					end
+					zipfile.file.open("#{curdir}/#{photoctr}.#{mime.extensions.first}", "w") do |file|
 						file.write(photo.data)
 					end
 
 					doc.printf("%-4s Judged: %s\n", "#{photoctr}.", photo.judge)
+					doc.printf("\tExposure Time: %s\n", exposure)
 					doc.printf("\tClues:\n")
 					#photo.clue_completions.each do |completion|
 					#	completion.clue
