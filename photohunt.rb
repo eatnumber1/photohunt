@@ -4,10 +4,14 @@ require 'digest/sha1'
 require 'tempfile'
 require 'fileutils'
 require 'filemagic'
+require 'filemagic/ext'
 require 'mime/types'
 require 'sequel'
+require 'zip/zipfilesystem'
 
 require 'logger'
+
+#Sequel::Model.plugin :json_serializer
 
 Sequel.inflections do |inflect|
 	inflect.irregular "bonus", "bonuses"
@@ -59,7 +63,7 @@ DB.transaction do
 		foreign_key :team_id, :teams
 		String :hash, :null => false
 		File :data, :null => false
-		FalseClass :judge, :null => false, :default => false
+		FalseClass :judge
 		String :notes, :text => true
 	end
 	
@@ -91,7 +95,7 @@ end
 class Clue < Sequel::Model
 	one_to_many :bonuses
 	many_to_many :tags
-	
+
 	def to_json(*opts)
 		{
 			:description => self.description,
@@ -116,10 +120,6 @@ end
 
 class Photo < Sequel::Model
 	one_to_many :clue_completions
-	
-#	one_to_many :clues, :dataset => proc {
-#		PhotoClueBonus[photo_id].join(Clue, :id => ).join(Bonus, :bonus_id)
-#	}
 end
 
 class ClueCompletion < Sequel::Model
@@ -200,21 +200,11 @@ end
 put '/api/photos/new', :provides => 'json' do
 	pass unless request.accept? 'application/json'
 	authenticate
-	file = Tempfile.new('photohunt-api-imagedata')
-	begin
-		file.write(request.body.read)
-		file.close
-		hash = Digest::SHA1.hexdigest(request.body.read)
-		filename = hash + "." + FileMagic.open(:mime) do |fm|
-			MIME::Types[fm.file(file.path)].first.extensions.first
-		end
-		FileUtils.mv(file.path, filename)
-		logger.info("New photo #{filename}")
-		return PhotohuntError::ERR_SUCCESS.merge({ :data => hash }).to_json
-	ensure
-		file.close
-		file.unlink
-	end
+
+	return PhotohuntError::ERR_SUCCESS.merge({ :data => Photo.create(
+		:hash => Digest::SHA1.hexdigest(request.body.read),
+		:data => request.body.read
+	).hash }).to_json
 end
 
 put '/api/photos/edit', :provides => 'json' do
@@ -251,4 +241,50 @@ get '/api/info', :provides => 'json' do
 		:maxPhotos => team.game.maxPhotos,
 		:maxJudgedPhotos => team.game.maxJudgedPhotos
 	}}).to_json
+end
+
+get '/api/export.zip', :provides => 'zip' do
+	pass unless request.accept? 'application/zip'
+
+	tempfile = Tempfile.new("photohunt-export")
+	path = tempfile.path
+	# This isn't secure
+	tempfile.unlink
+	Zip::ZipFile.open(path, Zip::ZipFile::CREATE) do |zipfile|
+		dirbase = "photohunt"
+		zipfile.dir.mkdir(dirbase)
+
+		Team.each do |team|
+			photoctr = 1
+			curdir = "#{dirbase}/#{team.name}"
+			zipfile.dir.mkdir(curdir)
+
+			zipfile.file.open("#{curdir}/#{team.name}.txt", "w") do |doc|
+				doc.puts "Team #{team.name}\n"
+
+				team.photos.each do |photo|
+					ext = MIME::Types[String.file_type(photo.data, :mime)].first.extensions.first
+					zipfile.file.open("#{curdir}/#{photoctr}.#{ext}", "w") do |file|
+						file.write(photo.data)
+					end
+
+					doc.printf("%-4s Judged: %s\n", "#{photoctr}.", photo.judge)
+					doc.printf("\tClues:\n")
+					#photo.clue_completions.each do |completion|
+					#	completion.clue
+					#		doc.printf "\t\t"
+					#	end
+					#end
+
+					doc.printf("\tNotes:\n")
+					# TODO: Pretty-print this.
+					doc.printf("\t\t%s\n", photo.notes)
+
+					photoctr += 1
+
+				end
+			end
+		end
+	end
+	return File.open(path) { |file| file.read }
 end
