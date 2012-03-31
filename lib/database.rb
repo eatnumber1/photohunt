@@ -60,6 +60,7 @@ module Photohunt
 
 			DB.create_table! :tokens do
 				foreign_key :team_id, :teams, :null => false, :on_delete => :cascade
+				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
 				String :token, :null => false, :primary_key => true
 			end
 
@@ -69,7 +70,7 @@ module Photohunt
 				File :data, :null => false
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
-				String :type, :null => false
+				String :mime, :null => false
 				DateTime :submission, :default => "datetime('now','localtime')".lit
 			end
 			
@@ -77,7 +78,6 @@ module Photohunt
 				primary_key :id
 				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
 				String :name, :null => false
-				FalseClass :finished, :null => false, :default => false
 			end
 
 			DB.create_table! :games do
@@ -90,6 +90,7 @@ module Photohunt
 		end
 
 		class Bonus < Sequel::Model
+			many_to_one :clue
 		end
 
 		class Clue < Sequel::Model
@@ -105,20 +106,22 @@ module Photohunt
 		end
 
 		class Team < Sequel::Model
-			one_to_many :photos
+			one_to_many :photos, :eager => :clue_completions
 			one_to_many :tokens
 			many_to_one :game
 		end
 
+		# The way this is built, nobody can ever have duplicate pictures.
+		# Not sure anymore that this is a good thing.
 		class Photo < Sequel::Model
 			unrestrict_primary_key
-			one_to_many :clue_completions, :order => :clue_id
+			one_to_many :clue_completions, :order => :clue_id, :eager => :bonus_completions
 			many_to_one :team
 		end
 
 		class ClueCompletion < Sequel::Model
 			many_to_one :photo
-			many_to_one :clue
+			many_to_one :clue, :eager => :bonuses
 			one_to_many :bonus_completions, :order => :bonus_id
 		end
 
@@ -131,12 +134,14 @@ module Photohunt
 		class Token < Sequel::Model
 			unrestrict_primary_key
 			many_to_one :team
+			many_to_one :game
 		end
 
 		class Game < Sequel::Model
 			unrestrict_primary_key
 			one_to_many :teams, :order => :name
-			one_to_many :clues, :order => :id
+			one_to_many :clues, :order => :id, :eager => :bonuses
+			one_to_many :tokens
 		end
 
 		DB.transaction do
@@ -148,25 +153,20 @@ module Photohunt
 				:max_photos => 30,
 				:max_judged_photos => 24
 			)
-			team = Team.new(
-				:name => "faggot",
-				:finished => false
-			)
-			game.add_team(team)
-			clue = Clue.new(
+			clue = Clue.create(
 				:description => "Your team on Marketplace Mall island.",
-				:points => 100
+				:points => 100,
+				:game => game
 			)
-			game.add_clue(clue)
 			game.add_clue(
 				:description => "Your team in a bank vault.",
 				:points => 1000
 			)
-			clue3 = Clue.new(
+			clue3 = Clue.create(
 				:description => "Your team on a boat.",
-				:points => 5
+				:points => 5,
+				:game => game
 			)
-			game.add_clue(clue3)
 			clue3.add_bonus(
 				:description => "if it is in water",
 				:points => 10
@@ -177,28 +177,38 @@ module Photohunt
 			)
 			clue.add_tag(:tag => "Location")
 			clue.add_tag(:tag => "Goose")
-			bonus = Bonus.new(
-				:description => "with a goose",
-				:points => 50
-			)
-			clue.add_bonus(bonus)
 			data = nil
 			guid = File.open("./tmp/photo") do |f|
 				data = f.read
 				Digest::SHA1.hexdigest(data)
 			end
-			photo = Photo.new(
-				:guid => guid,
-				:judge => true,
-				:notes => "With a goose!",
-				:data => data,
-				:type => "image/jpeg"
+			team = Team.create(
+				:name => "faggot",
+				:game => game
 			)
-			team.add_photo(photo)
-			team.add_token(:token => "foo")
-			clue_completion = ClueCompletion.new(:clue => clue)
-			photo.add_clue_completion(clue_completion)
-			clue_completion.add_bonus_completion(:bonus => bonus)
+			Token.create(
+				:token => "foo",
+				:game => game,
+				:team => team
+			)
+			BonusCompletion.create(
+				:bonus => Bonus.create(
+					:description => "with a goose",
+					:points => 50,
+					:clue => clue
+				),
+				:clue_completion => ClueCompletion.create(
+					:clue => clue,
+					:photo => Photo.create(
+						:guid => guid,
+						:judge => true,
+						:notes => "With a goose!",
+						:data => data,
+						:mime => "image/jpeg",
+						:team => team
+					)
+				)
+			)
 		end
 	end
 end
