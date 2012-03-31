@@ -18,38 +18,27 @@ module Photohunt
 			include Photohunt::GameID
 			include Photohunt::Database
 
-			def authenticate
-				token = Token[params[:token]]
-				if( token == nil )
-					raise NotAuthorized
-				else
-					return token.team
-				end
-			end
-
 			# TODO: Finish teams
 			configure do
 				disable :show_exceptions
 			end
 
 			error do
-				p "error handler"
+				# TODO: Find out why I can't make every error have a http_code.
 				err = env["sinatra.error"]
-				#if err.responds_to? :http_code
+				if err.responds_to? :http_code
 					halt err.http_code, err.to_hash.to_json 
-				#else
-				#	halt 500, err.message
-				#end
+				else
+					halt 500, err.message
+				end
 			end
 
 			before '/info' do
-				p "authenticating"
 				@token = Token[params[:token]]
 				raise NotAuthorized if @token == nil
 			end
 
 			before '/photos/*' do
-				p "authenticating"
 				@token = Token[params[:token]]
 				raise NotAuthorized if @token == nil
 			end
@@ -60,9 +49,9 @@ module Photohunt
 				end
 			end
 
-			after do
-				p "hello world!"
-			end
+			#after do
+			#	p "hello world!"
+			#end
 
 			get '/error', :provides => 'json' do
 				raise NotFoundError
@@ -139,7 +128,7 @@ module Photohunt
 
 			put '/photos/edit', :provides => 'json' do
 				pass unless request.accept? 'application/json'
-				team = authenticate
+				team = @token.team
 
 				data = JSON.parse(request.body.read)
 				DB.transaction do
@@ -181,14 +170,14 @@ module Photohunt
 
 			get '/info', :provides => 'json' do
 				pass unless request.accept? 'application/json'
-				team = authenticate
-				return PhotohuntError::ERR_SUCCESS.merge({ :data => {
+				team = @token.team
+				respond({
 					:team => team.name,
 					:startTime => team.game.start,
 					:endTime => team.game.end,
 					:max_photos => team.game.max_photos,
 					:max_judged_photos => team.game.max_judged_photos
-				}}).to_json
+				})
 			end
 		end
 

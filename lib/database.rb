@@ -183,7 +183,7 @@ module Photohunt
 			)
 			clue.add_bonus(bonus)
 			data = nil
-			guid = File.open("./tmp/b") do |f|
+			guid = File.open("./tmp/photo") do |f|
 				data = f.read
 				Digest::SHA1.hexdigest(data)
 			end

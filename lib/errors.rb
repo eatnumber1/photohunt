@@ -13,7 +13,6 @@ module Photohunt
 
 			alias_method :standard_error_initialize, :initialize
 			def initialize(options = {})
-				p "StandardError Constructed! #{options}"
 				options = { :message => options } unless options.respond_to? :assoc
 				options[:data] ||= nil
 				@json_code = 1
