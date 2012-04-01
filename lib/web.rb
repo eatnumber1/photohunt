@@ -39,14 +39,14 @@ module Photohunt
 
 			before '/info' do
 				@token = Token[params[:token]]
-				@game = @token.game
 				raise NotAuthorized if @token == nil
+				@game = @token.game
 			end
 
 			before '/photos/*' do
 				@token = Token[params[:token]]
-				@game = @token.game
 				raise NotAuthorized if @token == nil
+				@game = @token.game
 			end
 
 			helpers do
@@ -59,7 +59,7 @@ module Photohunt
 					data["clues"].each do |clue|
 						clues[clue["id"]] = clue["bonus_id"]
 					end
-					@game.clues_dataset.filter(:id => clues.keys).all do |clue|
+					@game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all do |clue|
 						clue_completion = ClueCompletion.create(
 							:clue => clue,
 							:photo => photo
@@ -119,31 +119,6 @@ module Photohunt
 				respond guid
 			end
 
-			# TODO: CRAWFORD, Don't use this anymore.
-			put '/photos/new', :provides => 'json' do
-				pass unless request.accept? 'application/json'
-
-				data = request.body.read
-				guid = Digest::SHA1.hexdigest(data)
-				DB.transaction do
-					team = @token.team
-					photo = team.photos_dataset.for_update[:guid => guid]
-					if( photo == nil )
-						photo = Photo.new(
-							:guid => guid,
-							:data => data,
-							:mime => "image/jpeg"
-						)
-						team.add_photo(photo)
-					end
-				end
-				{
-					:code => 0,
-					:message => "Crawford is a faggot.",
-					:data => photo.guid
-				}.to_json
-			end
-
 			put '/photos/edit', :provides => 'json' do
 				pass unless request.accept? 'application/json'
 
@@ -162,7 +137,7 @@ module Photohunt
 			get '/clues', :provides => 'json' do
 				pass unless request.accept? 'application/json'
 				# TODO: Doing JSON.parse right after Clue.to_json is really inefficient
-				respond JSON.parse(@game.clues.to_json(
+				respond JSON.parse(@game.clues_dataset.eager(:tags, :bonuses).to_json(
 					:naked => true,
 					:except => :game_id,
 					:include => {
@@ -210,11 +185,9 @@ module Photohunt
 				out.printf("Clue sheet for Photo Hunt\n\n")
 				out.printf("%-20s %s\n", "Start Time: ", game.start)
 				out.printf("%-20s %s\n", "End Time: ", game.end)
-				out.printf("%-20s %d\n", "Max Photos: ", game.max_photos)
-				out.printf("%-20s %d\n", "Max Judged Photos: ", game.max_judged_photos)
 				out.printf("\n")
-				game.clues.each do |clue|
-					out.printf("%-4s\t%+5d\t%s\n", "#{clue.id}.", clue.points, clue.description)
+				game.clues_dataset.order(:id).eager(:tags, :bonuses => proc{ |ds| ds.order(:id) }).all do |clue|
+					out.printf("%-4s\t%+5d\t%s %s\n", "#{clue.id}.", clue.points, clue.description, clue.tags.empty? ? "" : clue.tags.map{ |t| t.tag })
 					clue.bonuses.each do |bonus|
 						out.printf("\t%+5d\t\t%s\n", bonus.points, bonus.description)
 					end
@@ -239,7 +212,13 @@ module Photohunt
 
 					DB.transaction do
 						game = Game[GAME_ID]
-						game.teams.each do |team|
+						game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
+								ds.order(:submission).eager(:clue_completions => proc{ |ds|
+									ds.order(:clue_id).eager(:clue, :bonus_completions => proc{ |ds|
+										ds.order(:bonus_id).eager(:bonus)
+									})
+								})
+						}).all do |team|
 							photoctr = 1
 							curdir = "#{dirbase}/#{team.name}"
 							zipfile.dir.mkdir(curdir)
