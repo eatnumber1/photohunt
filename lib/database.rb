@@ -106,7 +106,7 @@ module Photohunt
 		end
 
 		class Team < Sequel::Model
-			one_to_many :photos, :eager => :clue_completions
+			one_to_many :photos
 			one_to_many :tokens
 			many_to_one :game
 		end
@@ -140,8 +140,8 @@ module Photohunt
 		class Game < Sequel::Model
 			unrestrict_primary_key
 			one_to_many :teams
-			one_to_many :clues, :eager => [:bonuses, :tags]
-			one_to_many :tokens, :eager => :team
+			one_to_many :clues
+			one_to_many :tokens
 		end
 
 		DB.transaction do
