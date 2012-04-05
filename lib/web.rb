@@ -83,7 +83,7 @@ module Photohunt
 							)
 							bonuses = clues[clue.id]
 							unless bonuses == nil || bonuses.empty?
-								clue.bonuses.reject{ |b| b.id != clues[clue.id] }.each do |bonus|
+								clue.bonuses.reject{ |b| ! clues[clue.id].include? b.id }.each do |bonus|
 									clue_completion.add_bonus_completion(:bonus => bonus)
 								end
 							end
