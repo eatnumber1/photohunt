@@ -1,0 +1,27 @@
+game:
+    start: July 21, 2012, 00:00
+    end: July 21, 2012, 23:59
+    max_photos: 30
+    max_judged_photos: 24
+
+clues:
+    - description: Your team on Marketplace Mall island.
+      points: 100
+      bonuses:
+        - description: with a goose
+          points: 50
+      tags:
+        - Goose
+        - Island
+        - Location
+    - description: Your team in a bank vault.
+      points: 1000
+      bonuses: []
+      tags: [Location, Hard, Illegal]
+    - description: Your team on a boat
+      points: 100
+      bonuses:
+        - description: if it is in water
+          points: 10
+        - description: if it is a real boat
+          points: 10

@@ -36,13 +36,13 @@ module Photohunt
 
 			before '/info' do
 				@token = Token[params[:token]]
-				raise NotAuthorized if @token == nil
+				halt 401, NotAuthorizedResponse.new.to_json if @token == nil
 				@game = @token.game
 			end
 
 			before '/photos/*' do
 				@token = Token[params[:token]]
-				raise NotAuthorized if @token == nil
+				halt 401, NotAuthorizedResponse.new.to_json if @token == nil
 				@game = @token.game
 			end
 
@@ -159,6 +159,7 @@ module Photohunt
 			end
 
 			get '/clues', :provides => :text do
+				pass unless request.accept? 'text/plain'
 				out = StringIO.new
 				out.printf("Clue sheet for Photo Hunt\n\n")
 				out.printf("%-20s %s\n", "Start Time: ", @game.start)
@@ -178,8 +179,7 @@ module Photohunt
 			# doesn't delete them. I can't help this
 			get '/export.zip', :provides => :zip do
 				pass unless request.accept? 'application/zip'
-				# TODO: Add judges-only auth.
-
+				pass if JudgesToken[params[:token]] == nil
 				tempfile = Tempfile.new("photohunt-export")
 				path = tempfile.path
 				# TODO: This isn't secure

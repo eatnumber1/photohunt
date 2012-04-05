@@ -72,4 +72,5 @@ DB.transaction do
 		:name => "1337",
 		:game => game
 	)
+	JudgesToken.create(:token => "bar")
 end

@@ -61,6 +61,7 @@ module Photohunt
 			DB.create_table? :tokens do
 				foreign_key :team_id, :teams, :null => false, :on_delete => :cascade
 				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
+				# Tokens must be globally unique.
 				String :token, :null => false, :primary_key => true
 			end
 
@@ -86,6 +87,10 @@ module Photohunt
 				DateTime :end, :null => false
 				Integer :max_photos, :null => false
 				Integer :max_judged_photos, :null => false
+			end
+
+			DB.create_table? :judges_tokens do
+				String :token, :null => false, :primary_key => true
 			end
 		end
 
@@ -142,6 +147,10 @@ module Photohunt
 			one_to_many :teams
 			one_to_many :clues
 			one_to_many :tokens
+		end
+
+		class JudgesToken < Sequel::Model
+			unrestrict_primary_key
 		end
 	end
 end

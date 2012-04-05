@@ -1,0 +1,10 @@
+teams:
+    - name: Faggot
+      tokens:
+        - foo
+    - name: 1337
+      tokens:
+        - baz
+
+judge_tokens:
+    - bar

@@ -1,0 +1,2 @@
+To initialize the SQL database, run the yaml.rb script with files like those
+in the yml/ directory as the arguments.
