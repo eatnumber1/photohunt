@@ -18,7 +18,6 @@ module Photohunt
 			include Photohunt::GameID
 			include Photohunt::Database
 
-			# TODO: Finish teams
 			configure do
 				disable :show_exceptions
 			end

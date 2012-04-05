@@ -15,56 +15,56 @@ module Photohunt
 			inflect.irregular "bonus", "bonuses"
 		end
 
-		#DB = Sequel.connect("sqlite://photohunt.sql")
-		DB = Sequel.sqlite
+		DB = Sequel.connect("sqlite://photohunt.sql")
+		#DB = Sequel.sqlite
 		DB.logger = Logger.new($stdout)
 		DB.sql_log_level = :debug
 
 		Sequel::Model.plugin :json_serializer
 
 		DB.transaction do
-			DB.create_table! :clues_tags do
+			DB.create_table? :clues_tags do
 				foreign_key :clue_id, :clues, :null => false, :on_delete => :cascade
 				foreign_key :tag_id, :tags, :null => false, :on_delete => :cascade
 			end
 
-			DB.create_table! :bonus_completions do
+			DB.create_table? :bonus_completions do
 				foreign_key :clue_completion_id, :clue_completions, :null => false, :on_delete => :cascade
 				foreign_key :bonus_id, :bonuses, :null => false, :on_delete => :cascade
 			end
 			
-			DB.create_table! :clue_completions do
+			DB.create_table? :clue_completions do
 				primary_key :id
 				foreign_key :photo_id, :photos, :null => false, :type => String, :on_delete => :cascade
 				foreign_key :clue_id, :clues, :null => false, :on_delete => :cascade
 			end
 
-			DB.create_table! :bonuses do
+			DB.create_table? :bonuses do
 				primary_key :id
 				foreign_key :clue_id, :clues, :null => false, :on_delete => :cascade
 				String :description, :null => false
 				Integer :points, :null => false
 			end
 
-			DB.create_table! :tags do
+			DB.create_table? :tags do
 				primary_key :id
 				String :tag, :unique => true, :null => false
 			end
 
-			DB.create_table! :clues do
+			DB.create_table? :clues do
 				primary_key :id
 				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
 				String :description, :null => false
 				Integer :points, :null => false
 			end
 
-			DB.create_table! :tokens do
+			DB.create_table? :tokens do
 				foreign_key :team_id, :teams, :null => false, :on_delete => :cascade
 				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
 				String :token, :null => false, :primary_key => true
 			end
 
-			DB.create_table! :photos do
+			DB.create_table? :photos do
 				foreign_key :team_id, :teams, :null => false, :on_delete => :cascade
 				String :guid, :null => false, :primary_key => true
 				File :data, :null => false
@@ -73,14 +73,14 @@ module Photohunt
 				String :mime, :null => false
 				DateTime :submission, :default => "datetime('now','localtime')".lit
 			end
-			
-			DB.create_table! :teams do
+
+			DB.create_table? :teams do
 				primary_key :id
 				foreign_key :game_id, :games, :null => false, :type => String, :on_delete => :cascade
 				String :name, :null => false
 			end
 
-			DB.create_table! :games do
+			DB.create_table? :games do
 				String :id, :primary_key => true
 				DateTime :start, :null => false
 				DateTime :end, :null => false
@@ -142,77 +142,6 @@ module Photohunt
 			one_to_many :teams
 			one_to_many :clues
 			one_to_many :tokens
-		end
-
-		DB.transaction do
-			# There can only be ONE of these, or it messes up the clue ID numbering
-			game = Game.create(
-				:id => GAME_ID,
-				:start => Time.at(0),
-				:end => Time.at(946702800),
-				:max_photos => 30,
-				:max_judged_photos => 24
-			)
-			clue = Clue.create(
-				:description => "Your team on Marketplace Mall island.",
-				:points => 100,
-				:game => game
-			)
-			game.add_clue(
-				:description => "Your team in a bank vault.",
-				:points => 1000
-			)
-			clue3 = Clue.create(
-				:description => "Your team on a boat.",
-				:points => 5,
-				:game => game
-			)
-			clue3.add_bonus(
-				:description => "if it is in water",
-				:points => 10
-			)
-			clue3.add_bonus(
-				:description => "if it is a real boat",
-				:points => 10
-			)
-			clue.add_tag(:tag => "Location")
-			clue.add_tag(:tag => "Goose")
-			data = nil
-			guid = File.open("./tmp/photo") do |f|
-				data = f.read
-				Digest::SHA1.hexdigest(data)
-			end
-			team = Team.create(
-				:name => "faggot",
-				:game => game
-			)
-			Token.create(
-				:token => "foo",
-				:game => game,
-				:team => team
-			)
-			BonusCompletion.create(
-				:bonus => Bonus.create(
-					:description => "with a goose",
-					:points => 50,
-					:clue => clue
-				),
-				:clue_completion => ClueCompletion.create(
-					:clue => clue,
-					:photo => Photo.create(
-						:guid => guid,
-						:judge => true,
-						:notes => "With a goose!",
-						:data => data,
-						:mime => "image/jpeg",
-						:team => team
-					)
-				)
-			)
-			Team.create(
-				:name => "1337",
-				:game => game
-			)
 		end
 	end
 end
