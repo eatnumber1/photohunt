@@ -23,7 +23,9 @@ module Photohunt
 			end
 
 			error do
-				halt 500, UnspecResponse.new.to_json
+				ex = env['sinatra.error']
+				ex = UnspecResponse.new unless Response === ex
+				halt ex.http_code, ex.to_json
 			end
 
 			before do
@@ -49,7 +51,7 @@ module Photohunt
 
 				def authenticate
 					@token = Token[params[:token]]
-					halt 401, NotAuthorizedResponse.new.to_json if @token == nil
+					raise NotAuthorizedResponse.new if @token == nil
 					@game = @token.game
 				end
 
@@ -58,29 +60,32 @@ module Photohunt
 					data["clues"].each do |clue|
 						clues[clue["id"]] = clue["bonus_id"]
 					end
-					cluedb = @game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all
-					# Validate the clue IDs
-					halt 415, BadContentResponse.new(:message => "Not all clue IDs specified were found").to_json unless cluedb.length == clues.keys.length
-					# Validate the bonus IDs
-					cluedb.each do |clue|
-						bonuses = clues[clue.id]
-						unless bonuses == nil || bonuses.empty?
-							bonusdb_ids = clue.bonuses.map{ |b| b.id }
-							bonuses.each do |bonus_id|
-								halt 415, BadContentResponse.new(:message => "Bonus ID #{bonus_id} for clue ID #{clue.id} not found").to_json unless bonusdb_ids.include? bonus_id
+					DB.transaction do
+						# TODO: Do this in fewer lines of code by loading the cluedb into a hash.
+						cluedb = @game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all
+						# Validate the clue IDs
+						raise MalformedResponse.new(:message => "Not all clue IDs specified were found") unless cluedb.length == clues.keys.length
+						# Validate the bonus IDs
+						cluedb.each do |clue|
+							bonuses = clues[clue.id]
+							unless bonuses == nil || bonuses.empty?
+								bonusdb_ids = clue.bonuses.map{ |b| b.id }
+								bonuses.each do |bonus_id|
+									raise MalformedResponse.new(:message => "Bonus ID #{bonus_id} for clue ID #{clue.id} not found") unless bonusdb_ids.include? bonus_id
+								end
 							end
 						end
-					end
-					# Add the completions
-					cluedb.each do |clue|
-						clue_completion = ClueCompletion.create(
-							:clue => clue,
-							:photo => photo
-						)
-						bonuses = clues[clue.id]
-						unless bonuses == nil || bonuses.empty?
-							clue.bonuses_dataset.filter(:id => clues[clue.id]).all do |bonus|
-								clue_completion.add_bonus_completion(:bonus => bonus)
+						# Add the completions
+						cluedb.each do |clue|
+							clue_completion = ClueCompletion.create(
+								:clue => clue,
+								:photo => photo
+							)
+							bonuses = clues[clue.id]
+							unless bonuses == nil || bonuses.empty?
+								clue.bonuses.reject{ |b| b.id != clues[clue.id] }.each do |bonus|
+									clue_completion.add_bonus_completion(:bonus => bonus)
+								end
 							end
 						end
 					end
@@ -90,14 +95,12 @@ module Photohunt
 			before '/photos/new' do
 				content_type = request.env["CONTENT_TYPE"]
 				if content_type == nil || MIME::Types[content_type] != MIME::Types["multipart/form-data"]
-					halt 415, BadContentResponse.new(
-						:message => "Expecting Content-Type multipart/form-data"
-					).to_json
+					raise MalformedResponse.new(:message => "Expecting Content-Type multipart/form-data")
 				end
 
-				halt 415, BadContentResponse.new(
+				raise MalformedResponse.new(
 					:message => "Unknown content-type #{params[:json][:type]} for json body"
-				).to_json unless params[:json][:type] == "application/json"
+				) unless params[:json][:type] == "application/json"
 			end
 
 			post '/photos/new', :provides => :json do
@@ -128,7 +131,7 @@ module Photohunt
 				data = JSON.parse(request.body.read)
 				DB.transaction do
 					photo = @token.team.photos_dataset.for_update[:guid => params[:id]]
-					halt 404, NotFoundResponse.new(:message => "Photo #{params[:id]} not found").to_json if photo == nil
+					raise NotFoundResponse.new(:message => "Photo #{params[:id]} not found") if photo == nil
 					photo.update(:judge => data["judge"], :notes => data["notes"])
 					photo.clue_completions_dataset.delete
 					add_clue_completions photo, data
@@ -205,6 +208,7 @@ module Photohunt
 					dirbase = "photohunt"
 					zipfile.dir.mkdir(dirbase)
 
+					# TODO: Put unjudged photos in a different dir.
 					DB.transaction do
 						@game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
 								ds.order(:submission).eager(:clue_completions => proc{ |ds|
