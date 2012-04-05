@@ -162,8 +162,8 @@ module Photohunt
 			get '/clues', :provides => :text do
 				out = StringIO.new
 				out.printf("Clue sheet for Photo Hunt\n\n")
-				out.printf("%-20s %s\n", "Start Time: ", game.start)
-				out.printf("%-20s %s\n", "End Time: ", game.end)
+				out.printf("%-20s %s\n", "Start Time: ", @game.start)
+				out.printf("%-20s %s\n", "End Time: ", @game.end)
 				out.printf("\n")
 				@game.clues_dataset.order(:id).eager(:tags, :bonuses => proc{ |ds| ds.order(:id) }).all do |clue|
 					out.printf("%-4s\t%+5d\t%s %s\n", "#{clue.id}.", clue.points, clue.description, clue.tags.empty? ? "" : clue.tags.map{ |t| t.tag })
