@@ -35,15 +35,11 @@ module Photohunt
 			end
 
 			before '/info' do
-				@token = Token[params[:token]]
-				halt 401, NotAuthorizedResponse.new.to_json if @token == nil
-				@game = @token.game
+				authenticate
 			end
 
 			before '/photos/*' do
-				@token = Token[params[:token]]
-				halt 401, NotAuthorizedResponse.new.to_json if @token == nil
-				@game = @token.game
+				authenticate
 			end
 
 			helpers do
@@ -51,17 +47,38 @@ module Photohunt
 					SuccessResponse.new(:data => data).to_json
 				end
 
+				def authenticate
+					@token = Token[params[:token]]
+					halt 401, NotAuthorizedResponse.new.to_json if @token == nil
+					@game = @token.game
+				end
+
 				def add_clue_completions(photo, data)
 					clues = {}
 					data["clues"].each do |clue|
 						clues[clue["id"]] = clue["bonus_id"]
 					end
-					@game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all do |clue|
+					cluedb = @game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all
+					# Validate the clue IDs
+					halt 415, BadContentResponse.new(:message => "Not all clue IDs specified were found").to_json unless cluedb.length == clues.keys.length
+					# Validate the bonus IDs
+					cluedb.each do |clue|
+						bonuses = clues[clue.id]
+						unless bonuses == nil || bonuses.empty?
+							bonusdb_ids = clue.bonuses.map{ |b| b.id }
+							bonuses.each do |bonus_id|
+								halt 415, BadContentResponse.new(:message => "Bonus ID #{bonus_id} for clue ID #{clue.id} not found").to_json unless bonusdb_ids.include? bonus_id
+							end
+						end
+					end
+					# Add the completions
+					cluedb.each do |clue|
 						clue_completion = ClueCompletion.create(
 							:clue => clue,
 							:photo => photo
 						)
-						unless clues[clue.id].empty?
+						bonuses = clues[clue.id]
+						unless bonuses == nil || bonuses.empty?
 							clue.bonuses_dataset.filter(:id => clues[clue.id]).all do |bonus|
 								clue_completion.add_bonus_completion(:bonus => bonus)
 							end
