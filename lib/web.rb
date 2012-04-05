@@ -27,6 +27,10 @@ module Photohunt
 				halt 500, UnspecResponse.new.to_json
 			end
 
+			before do
+				pass unless request.accept? 'application/json'
+			end
+
 			before '/clues' do
 				@game = Game[GAME_ID]
 			end
@@ -67,17 +71,22 @@ module Photohunt
 				end
 			end
 
-			#after do
-			#	p "hello world!"
-			#end
+			before '/photos/new' do
+				content_type = request.env["CONTENT_TYPE"]
+				if content_type == nil || MIME::Types[content_type] != MIME::Types["multipart/form-data"]
+					halt 415, BadContentResponse.new(
+						:message => "Expecting Content-Type multipart/form-data"
+					).to_json
+				end
 
-			post '/photos/new', :provides => 'json' do
-				pass unless request.accept? 'application/json'
+				halt 415, BadContentResponse.new(
+					:message => "Unknown content-type #{params[:json][:type]} for json body"
+				).to_json unless params[:json][:type] == "application/json"
+			end
 
-				# TODO: Check for multipart form upload
+			post '/photos/new', :provides => :json do
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
-				halt 415, BadContentResponse.new(:message => "Unknown content-type #{params[:json][:type]} for json body").to_json unless params[:json][:type] == "application/json"
 				json = JSON.parse(params[:json][:tempfile].read)
 				guid = Digest::SHA1.hexdigest(data)
 
@@ -99,9 +108,7 @@ module Photohunt
 				respond guid
 			end
 
-			put '/photos/edit', :provides => 'json' do
-				pass unless request.accept? 'application/json'
-
+			put '/photos/edit', :provides => :json do
 				data = JSON.parse(request.body.read)
 				DB.transaction do
 					photo = @token.team.photos_dataset.for_update[:guid => params[:id]]
@@ -114,8 +121,7 @@ module Photohunt
 				respond nil
 			end
 
-			get '/clues', :provides => 'json' do
-				pass unless request.accept? 'application/json'
+			get '/clues', :provides => :json do
 				# TODO: Doing JSON.parse right after Clue.to_json is really inefficient
 				respond JSON.parse(@game.clues_dataset.eager(:tags, :bonuses).to_json(
 					:naked => true,
@@ -130,8 +136,7 @@ module Photohunt
 				))
 			end
 
-			get '/info', :provides => 'json' do
-				pass unless request.accept? 'application/json'
+			get '/info', :provides => :json do
 				DB.transaction do
 					team = @token.team
 					respond({
@@ -154,13 +159,7 @@ module Photohunt
 				@game = Game[GAME_ID]
 			end
 
-			#	respond_with do |f|
-			#		f.json do
-			#			raise NotFoundError, "Test this"
-			#		end
-			#	end
-
-			get '/clues', :provides => 'text' do
+			get '/clues', :provides => :text do
 				out = StringIO.new
 				out.printf("Clue sheet for Photo Hunt\n\n")
 				out.printf("%-20s %s\n", "Start Time: ", game.start)
@@ -178,7 +177,7 @@ module Photohunt
 
 			# The zipfile library seems to create temporary working files in /tmp and
 			# doesn't delete them. I can't help this
-			get '/export.zip', :provides => 'zip' do
+			get '/export.zip', :provides => :zip do
 				pass unless request.accept? 'application/zip'
 				# TODO: Add judges-only auth.
 
