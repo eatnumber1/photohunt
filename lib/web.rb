@@ -9,6 +9,7 @@ require 'fileutils'
 require 'gameid'
 require 'errors'
 require 'database'
+require 'models'
 
 module Photohunt
 	module Web

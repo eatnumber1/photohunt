@@ -6,8 +6,9 @@ if ARGV.length < 1
 end
 
 $:.unshift File.expand_path("../lib", __FILE__)
-require 'database'
 require 'gameid'
+require 'schema'
+require 'models'
 
 include Photohunt::GameID
 include Photohunt::Database

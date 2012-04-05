@@ -16,7 +16,6 @@ clues:
         - Location
     - description: Your team in a bank vault.
       points: 1000
-      bonuses: []
       tags: [Location, Hard, Illegal]
     - description: Your team on a boat
       points: 100
