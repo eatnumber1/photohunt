@@ -5,7 +5,6 @@ Bundler.require(:default)
 require 'digest/sha1'
 require 'tempfile'
 require 'fileutils'
-require 'json'
 
 require 'gameid'
 require 'errors'
