@@ -51,7 +51,7 @@ module Photohunt
 
 				def authenticate
 					@token = Token[params[:token]]
-					raise NotAuthorizedResponse.new if @token == nil
+					raise NotAuthorizedResponse if @token == nil
 					@game = @token.game
 				end
 
@@ -162,8 +162,8 @@ module Photohunt
 						:team => team.name,
 						:startTime => team.game.start,
 						:endTime => team.game.end,
-						:max_photos => team.game.max_photos,
-						:max_judged_photos => team.game.max_judged_photos
+						:maxPhotos => team.game.max_photos,
+						:maxJudgedPhotos => team.game.max_judged_photos
 					})
 				end
 			end
