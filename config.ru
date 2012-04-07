@@ -1,3 +1,7 @@
+log = File.new("log/sinatra.log", "a+")
+$stdout.reopen(log)
+$stderr.reopen(log)
+
 $:.unshift File.expand_path("../lib", __FILE__)
 require 'web'
 

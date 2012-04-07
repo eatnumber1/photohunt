@@ -1,2 +1,5 @@
 .*.swp
 photohunt.sql
+.bundle/
+log/
+tmp/
