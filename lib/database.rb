@@ -12,7 +12,7 @@ module Photohunt
 			inflect.irregular "bonus", "bonuses"
 		end
 
-		DB = Sequel.connect("sqlite://photohunt.sql")
+		DB = Sequel.connect("sqlite://sql/photohunt.sql")
 		#DB = Sequel.sqlite
 		#DB.logger = Logger.new($stdout)
 		#DB.sql_log_level = :debug

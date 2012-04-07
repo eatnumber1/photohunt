@@ -3,3 +3,4 @@ photohunt.sql
 .bundle/
 log/
 tmp/
+sql/
