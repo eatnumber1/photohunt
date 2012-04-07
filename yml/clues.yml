@@ -24,3 +24,28 @@ clues:
           points: 10
         - description: if it is a real boat
           points: 10
+    - description: Your team at a notable grave
+      points: 30
+    - description: Your team with an interesting sign
+      points: 20
+    - description: Your team in blackface
+      points: 20
+      bonuses:
+        - description: for black strangers
+          points: 20
+    - description: Same sex kissing on the lips
+      points: 30
+      bonuses:
+        - description: if tongue is clearly involved
+          points: 20
+    - description: Charlie Sheen
+      points: 10
+    - description: Your team wearing women''s lingerie
+      points: 10
+      bonuses:
+        - description: if it''s all you''re wearing
+          points: 10
+        - description: if you''re in public
+          points: 10
+    - description: SOCIAL GOOD! TECHNICAL BAD!
+      points: 10
