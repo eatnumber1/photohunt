@@ -85,6 +85,14 @@ clue-list = "[", {
 		"}",
 	}, "]";
 
+info = "{",
+		"team=", "\"", string, "\"", ",",
+		"startTime=", "\"", string, "\"", ",",
+		"endTime=", "\"", string, "\"", ",",
+		"maxPhotos=", number, ",",
+		"maxJudgeablePhotos=", number,
+"}"
+
 (* Example - Uses RFC 2616 dateTime format
 	{
 		"team": "faggot",
@@ -94,7 +102,6 @@ clue-list = "[", {
 		"maxJudgeablePhotos": 24
 	}
 *)
-info = TODO
 
 The GET/PUT requests will look like the following:
 Content-Type: application/json
