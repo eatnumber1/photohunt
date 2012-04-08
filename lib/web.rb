@@ -98,15 +98,23 @@ module Photohunt
 					raise MalformedResponse.new(:message => "Expecting Content-Type multipart/form-data")
 				end
 
-				raise MalformedResponse.new(
-					:message => "Unknown content-type #{params[:json][:type]} for json body"
-				) unless params[:json][:type] == "application/json"
+				raise MalformedResponse.new("No JSON body provided") if params[:json] == nil
+				unless String === params[:json]
+					raise MalformedResponse.new(
+						:message => "Unknown content-type #{params[:json][:type]} for json body"
+					) unless params[:json][:type] == "application/json"
+				end
 			end
 
 			post '/photos/new', :provides => :json do
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
-				json = JSON.parse(params[:json][:tempfile].read)
+				json = nil
+				if String === params[:json]
+					json = JSON.parse(params[:json])
+				else
+					json = JSON.parse(params[:json][:tempfile].read)
+				end
 				guid = Digest::SHA1.hexdigest(data)
 
 				DB.transaction do
