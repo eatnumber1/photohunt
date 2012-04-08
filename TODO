@@ -1,0 +1,5 @@
+Write photos to zip in date sorted order.
+Put unjudged photos in it's own folder.
+Properly log errors in production.
+
+Investigate "database is locked" error.
