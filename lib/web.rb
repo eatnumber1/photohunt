@@ -13,7 +13,7 @@ require 'models'
 
 module Photohunt
 	module Web
-		class CommonWeb < Sinatra::Base 
+		class CommonWeb < Sinatra::Base
 			include Photohunt::Errors
 			include Photohunt::GameID
 			include Photohunt::Database
@@ -24,20 +24,16 @@ module Photohunt
 					raise NotAuthorizedResponse if @token == nil
 					@game = @token.game
 				end
-			end
 
-			before do
-				@game = Game[GAME_ID]
-			end
-
-			before '/clues' do
-				begin
-					# This is done so that clients which only retrieve the clue sheet once can
-					# successfully retrieve it.
-					authenticate
-				rescue NotAuthorizedResponse
-					@game = Game[GAME_ID]
-					raise GameNotStartedResponse if @game.start > Time.now
+				def authenticate_clues
+					begin
+						# This is done so that clients which only retrieve the clue sheet once can
+						# successfully retrieve it.
+						authenticate
+					rescue NotAuthorizedResponse
+						@game = Game[GAME_ID]
+						raise GameNotStartedResponse if @game.start.to_datetime > DateTime.now
+					end
 				end
 			end
 		end
@@ -45,6 +41,10 @@ module Photohunt
 		class API < CommonWeb
 			configure do
 				disable :show_exceptions
+			end
+
+			before do
+				@game = Game[GAME_ID]
 			end
 
 			error do
@@ -163,6 +163,10 @@ module Photohunt
 				respond nil
 			end
 
+			before '/clues' do
+				authenticate_clues
+			end
+
 			get '/clues', :provides => :json do
 				# TODO: Doing JSON.parse right after Clue.to_json is really inefficient
 				respond JSON.parse(@game.clues_dataset.eager(:tags, :bonuses).to_json(
@@ -193,6 +197,14 @@ module Photohunt
 		end
 
 		class Base < CommonWeb
+			before do
+				@game = Game[GAME_ID]
+			end
+
+			before '/clues' do
+				authenticate_clues
+			end
+
 			get '/clues', :provides => :text do
 				pass unless request.accept? 'text/plain'
 				out = StringIO.new
@@ -260,7 +272,7 @@ module Photohunt
 									doc.printf("\tJudged: %s\n", photo.judge) unless photo.judge == nil
 									doc.printf("\tExposure Time: %s\n", exposure)
 									# TODO: Make sure updates don't change submission time.
-									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission > @game.end ? "LATE" : "")
+									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission.to_datetime > @game.end.to_datetime ? "LATE" : "")
 									if photo.clue_completions.length != 0
 										points = 0
 										clue_str = StringIO.new
