@@ -32,6 +32,8 @@ module Photohunt
 
 			before '/clues' do
 				begin
+					# This is done so that clients which only retrieve the clue sheet once can
+					# successfully retrieve it.
 					authenticate
 				rescue NotAuthorizedResponse
 					@game = Game[GAME_ID]
