@@ -1,6 +1,4 @@
 Write photos to zip in date sorted order.
 Put unjudged photos in it's own folder.
-Properly log errors in production.
-Don't show clues until game start time.
 
 Investigate "database is locked" error.
