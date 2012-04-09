@@ -61,5 +61,13 @@ module Photohunt
 				super({ :message => "Malformed message" }.merge(opts))
 			end
 		end
+
+		class GameNotStartedResponse < Response
+			def initialize(opts = {})
+				@json_code = 5
+				@http_code = 401
+				super({ :message => "Game has not started" }.merge(opts))
+			end
+		end
 	end
 end

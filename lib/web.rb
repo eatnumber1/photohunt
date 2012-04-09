@@ -13,11 +13,34 @@ require 'models'
 
 module Photohunt
 	module Web
-		class API < Sinatra::Base
+		class CommonWeb < Sinatra::Base 
 			include Photohunt::Errors
 			include Photohunt::GameID
 			include Photohunt::Database
 
+			helpers do
+				def authenticate
+					@token = Token[params[:token]]
+					raise NotAuthorizedResponse if @token == nil
+					@game = @token.game
+				end
+			end
+
+			before do
+				@game = Game[GAME_ID]
+			end
+
+			before '/clues' do
+				begin
+					authenticate
+				rescue NotAuthorizedResponse
+					@game = Game[GAME_ID]
+					raise GameNotStartedResponse if @game.start > Time.now
+				end
+			end
+		end
+
+		class API < CommonWeb
 			configure do
 				disable :show_exceptions
 			end
@@ -32,10 +55,6 @@ module Photohunt
 				pass unless request.accept? 'application/json'
 			end
 
-			before '/clues' do
-				@game = Game[GAME_ID]
-			end
-
 			before '/info' do
 				authenticate
 			end
@@ -47,12 +66,6 @@ module Photohunt
 			helpers do
 				def respond(data)
 					SuccessResponse.new(:data => data).to_json
-				end
-
-				def authenticate
-					@token = Token[params[:token]]
-					raise NotAuthorizedResponse if @token == nil
-					@game = @token.game
 				end
 
 				def add_clue_completions(photo, data)
@@ -177,15 +190,7 @@ module Photohunt
 			end
 		end
 
-		class Base < Sinatra::Base
-			include Photohunt::Errors
-			include Photohunt::GameID
-			include Photohunt::Database
-
-			before do
-				@game = Game[GAME_ID]
-			end
-
+		class Base < CommonWeb
 			get '/clues', :provides => :text do
 				pass unless request.accept? 'text/plain'
 				out = StringIO.new

@@ -6,8 +6,9 @@ that this is only roughly EBNF):
 ERR_SUCCESS = 0 (* No error occurred *)
 ERR_UNSPEC = 1 (* Unspecified error. Message contains additional information *)
 ERR_NOTAUTH = 2 (* Authorization token invalid *)
-ERR_GAMEOVER = 3 (* Photohunt competition is over. No judged submissions allowed *)
-(* Additional error codes will be added during development *)
+ERR_NOTFOUND = 3 (* Resource not found *)
+ERR_MALFORMED = 4 (* Malformed message *)
+ERR_GAMENOTSTART = 5 (* Game has not started *)
 
 (* Example
 	{

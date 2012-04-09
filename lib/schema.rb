@@ -58,7 +58,7 @@ module Photohunt
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
-				DateTime :submission, :default => "datetime('now','localtime')".lit
+				Time :submission, :default => "datetime('now','localtime')".lit
 			end
 
 			DB.create_table :teams do
@@ -69,8 +69,8 @@ module Photohunt
 
 			DB.create_table :games do
 				String :id, :primary_key => true
-				DateTime :start, :null => false
-				DateTime :end, :null => false
+				Time :start, :null => false
+				Time :end, :null => false
 				Integer :max_photos, :null => false
 				Integer :max_judged_photos, :null => false
 			end
