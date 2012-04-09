@@ -201,6 +201,14 @@ module Photohunt
 				@game = Game[GAME_ID]
 			end
 
+			configure :production do
+				error do
+					ex = env['sinatra.error']
+					ex = UnspecResponse.new unless Response === ex
+					halt ex.http_code, ex.message
+				end
+			end
+
 			before '/clues' do
 				authenticate_clues
 			end
