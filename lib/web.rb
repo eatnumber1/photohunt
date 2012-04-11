@@ -300,7 +300,7 @@ module Photohunt
 										doc.printf("%s", clue_str.read)
 									end
 
-									if photo.notes != nil
+									if photo.notes != nil && photo.notes != ""
 										doc.printf("\tNotes:\n")
 										# TODO: Pretty-print this.
 										doc.printf("\t\t%s\n", photo.notes)
