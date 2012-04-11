@@ -1,10 +1,7 @@
 teams:
-    - name: Faggot
-      tokens:
-        - foo
-    - name: 1337
-      tokens:
-        - baz
-
-judge_tokens:
-    - bar
+    - name: russ
+      tokens: [russ]
+    - name: crawford
+      tokens: [crawford]
+    - name: duncan
+      tokens: [duncan]
