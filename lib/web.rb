@@ -260,7 +260,7 @@ module Photohunt
 								doc.puts "Team \"#{team.name}\"\n"
 
 								team.photos.each do |photo|
-									exposure = "unavailable"
+									exposure = ""
 									filename = photoctr.to_s
 									mime = MIME::Types[photo.mime].first
 									if mime != nil
@@ -278,7 +278,7 @@ module Photohunt
 
 									doc.printf("\n%d.\n", photoctr)
 									doc.printf("\tJudged: %s\n", photo.judge) unless photo.judge == nil
-									doc.printf("\tExposure Time: %s\n", exposure)
+									doc.printf("\tExposure Time: %s\n", exposure) if exposure != ""
 									# TODO: Make sure updates don't change submission time.
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission.to_datetime > @game.end.to_datetime ? "LATE" : "")
 									if photo.clue_completions.length != 0
