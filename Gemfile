@@ -5,8 +5,15 @@ gem 'sinatra'
 gem 'mime-types', :require => 'mime/types'
 gem 'zip', :require => 'zip/zipfilesystem'
 gem 'exifr'
-gem 'sqlite3'
 gem 'sequel'
 gem 'json'
+
+group :production do
+	gem 'mysql'
+end
+
+group :development do
+	gem 'sqlite3'
+end
 
 # vim:ft=ruby

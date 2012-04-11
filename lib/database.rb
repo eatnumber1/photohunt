@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'bundler/setup'
-Bundler.require(:default)
+Bundler.require(:default, :development)
+#Bundler.require(:default, :production)
 
 require 'digest/sha1'
 
