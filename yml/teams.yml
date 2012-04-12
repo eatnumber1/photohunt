@@ -5,3 +5,5 @@ teams:
       tokens: [crawford]
     - name: duncan
       tokens: [duncan]
+    - name: will
+      tokens: [will]
