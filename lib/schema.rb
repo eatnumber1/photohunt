@@ -60,7 +60,7 @@ module Photohunt
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
-				DateTime :submission, :default => "datetime('now','localtime')".lit
+				column :submission, "timestamp", :default => :now.sql_function
 			end
 
 			DB.create_table? :clues_tags do

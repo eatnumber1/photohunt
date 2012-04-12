@@ -9,7 +9,7 @@ gem 'sequel'
 gem 'json'
 
 group :production do
-	gem 'mysql'
+	gem 'mysql2'
 end
 
 group :development do
