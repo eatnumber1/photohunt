@@ -10,4 +10,4 @@ database:
 #    password: apassword
 #    database: photohunt
 
-debug: true
+debug: false
