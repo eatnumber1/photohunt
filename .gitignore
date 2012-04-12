@@ -1,5 +1,5 @@
 .*.swp
 .bundle/
 tmp/
-sql/
 log/
+photohunt.sql

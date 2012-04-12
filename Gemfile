@@ -8,11 +8,11 @@ gem 'exifr'
 gem 'sequel'
 gem 'json'
 
-group :production do
+group :mysql2 do
 	gem 'mysql2'
 end
 
-group :development do
+group :sqlite do
 	gem 'sqlite3'
 end
 
