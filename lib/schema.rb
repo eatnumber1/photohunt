@@ -56,7 +56,7 @@ module Photohunt
 			DB.create_table? :photos do
 				foreign_key :team_id, :teams, :null => false, :on_delete => :cascade
 				String :guid, :null => false, :primary_key => true
-				File :data, :null => false
+				File :data, :null => false, :size => :long
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
