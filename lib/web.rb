@@ -23,6 +23,7 @@ module Photohunt
 					@token = Token[params[:token]]
 					raise NotAuthorizedResponse if @token == nil
 					@game = @token.game
+					logger.info "Authenticated team \"#{@token.team.name}\""
 				end
 
 				def authenticate_clues
@@ -41,6 +42,7 @@ module Photohunt
 		class API < CommonWeb
 			configure do
 				disable :show_exceptions
+				enable :logging
 			end
 
 			before do
