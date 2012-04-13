@@ -244,7 +244,6 @@ module Photohunt
 					dirbase = "photohunt"
 					zipfile.dir.mkdir(dirbase)
 
-					# TODO: Put unjudged photos in a different dir.
 					DB.transaction do
 						@game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
 								ds.order(:submission).eager(:clue_completions => proc{ |ds|
@@ -254,13 +253,25 @@ module Photohunt
 								})
 						}).all do |team|
 							photoctr = 1
-							curdir = "#{dirbase}/#{team.name}"
-							zipfile.dir.mkdir(curdir)
+							judged_dir = "#{dirbase}/#{team.name}"
+							unjudged_dir = "#{judged_dir}/unjudged"
+							zipfile.dir.mkdir(judged_dir)
+							zipfile.dir.mkdir(unjudged_dir)
 
-							zipfile.file.open("#{curdir}/#{team.name}.txt", "w") do |doc|
-								doc.puts "Team \"#{team.name}\"\n"
+							zipfile.file.open("#{unjudged_dir}/#{team.name}.txt", "w") do |unjudged_doc|
+							zipfile.file.open("#{judged_dir}/#{team.name}.txt", "w") do |judged_doc|
+								s = "Team \"#{team.name}\"\n"
+								judged_doc.puts s
+								unjudged_doc.puts s
 
 								team.photos.each do |photo|
+									if photo.judge
+										doc = judged_doc
+										dir = judged_dir
+									else
+										doc = unjudged_doc
+										dir = unjudged_dir
+									end
 									exposure = ""
 									filename = photoctr.to_s
 									mime = MIME::Types[photo.mime].first
@@ -273,12 +284,11 @@ module Photohunt
 										end
 										filename += ".#{mime.extensions.first}" if mime.extensions != nil
 									end
-									zipfile.file.open("#{curdir}/#{filename}", "w") do |file|
+									zipfile.file.open("#{dir}/#{filename}", "w") do |file|
 										file.write(photo.data)
 									end
 
 									doc.printf("\n%d.\n", photoctr)
-									doc.printf("\tJudged: %s\n", photo.judge) unless photo.judge == nil
 									doc.printf("\tExposure Time: %s\n", exposure) if exposure != ""
 									# TODO: Make sure updates don't change submission time.
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission.to_datetime > @game.end.to_datetime ? "LATE" : "")
@@ -309,6 +319,7 @@ module Photohunt
 
 									photoctr += 1
 
+								end
 								end
 							end
 						end
