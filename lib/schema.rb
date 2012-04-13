@@ -60,7 +60,11 @@ module Photohunt
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
-				column :submission, "timestamp", :default => :now.sql_function
+				if $config["database"]["adapter"] == "mysql2"
+					column :submission, "timestamp", :default => :now.sql_function
+				else
+					DateTime :submission, :default => "datetime('now','localtime')".lit
+				end
 			end
 
 			DB.create_table? :clues_tags do

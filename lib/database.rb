@@ -12,11 +12,11 @@ module Photohunt
 			inflect.irregular "bonus", "bonuses"
 		end
 
-		config = { :debug => false }.merge(YAML.load_file("config.yml"))
-		Bundler.require(config["database"]["adapter"])
-		DB = Sequel.connect(config["database"])
+		$config = { :debug => false }.merge(YAML.load_file("config.yml"))
+		Bundler.require($config["database"]["adapter"])
+		DB = Sequel.connect($config["database"])
 
-		if config["debug"]
+		if $config["debug"]
 			require 'logger'
 			DB.logger = Logger.new($stdout)
 			DB.sql_log_level = :debug
