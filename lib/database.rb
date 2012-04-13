@@ -15,6 +15,20 @@ module Photohunt
 		$config = { :debug => false }.merge(YAML.load_file("config.yml"))
 		Bundler.require($config["database"]["adapter"])
 		DB = Sequel.connect($config["database"])
+		module DBConn
+			def reconnect
+				connect($config["database"])
+			end
+
+			def ensure_connect
+				begin
+					test_connection
+				rescue
+					reconnect
+				end
+			end
+		end
+		DB.extend(DBConn)
 
 		if $config["debug"]
 			require 'logger'

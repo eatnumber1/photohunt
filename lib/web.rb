@@ -199,6 +199,7 @@ module Photohunt
 
 		class Base < CommonWeb
 			before do
+				DB.reconnect
 				@game = Game[GAME_ID]
 			end
 
