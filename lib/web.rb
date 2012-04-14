@@ -21,7 +21,7 @@ module Photohunt
 			helpers do
 				def authenticate
 					@token = Token[params[:token]]
-					raise NotAuthorizedResponse if @token == nil
+					raise NotAuthorizedResponse.new(:token => params[:token]) if @token == nil
 					@game = @token.game
 				end
 
@@ -58,7 +58,7 @@ module Photohunt
 
 		class API < CommonWeb
 			configure do
-				disable :show_exceptions
+				disable :show_exceptions, :dump_errors
 			end
 
 			before do
@@ -67,8 +67,25 @@ module Photohunt
 
 			error do
 				ex = env['sinatra.error']
-				ex = UnspecResponse.new unless Response === ex
+				_ex = ex
+				dump = lambda do
+					dump_errors!(_ex)
+				end
+				if Response === ex
+					if NotAuthorizedResponse === ex
+						dump = lambda{ logger.warn("Unauthorized login with token #{ex.token}") }
+					else
+						# Do nothing
+					end
+				else
+					ex = UnspecResponse.new
+				end
+				dump.call
 				halt ex.http_code, ex.to_json
+			end
+
+			get '/error' do
+				raise RuntimeException, "LEMONADE"
 			end
 
 			before do

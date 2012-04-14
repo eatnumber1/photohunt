@@ -42,7 +42,10 @@ module Photohunt
 		end
 
 		class NotAuthorizedResponse < Response
+			attr_reader :token
+
 			def initialize(opts = {})
+				@token = opts[:token] if opts[:token] != nil
 				@json_code = 2
 				@http_code = 401
 				super(opts)
