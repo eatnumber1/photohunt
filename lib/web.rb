@@ -277,11 +277,15 @@ module Photohunt
 									filename = photoctr.to_s
 									mime = MIME::Types[photo.mime].first
 									if mime != nil
-										case mime.content_type
-										when "image/jpeg"
-											exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
-										when "image/tiff"
-											exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
+										begin
+											case mime.content_type
+											when "image/jpeg"
+												exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
+											when "image/tiff"
+												exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
+											end
+										rescue
+											exposure = ""
 										end
 										filename += ".#{mime.extensions.first}" if mime.extensions != nil
 									end
