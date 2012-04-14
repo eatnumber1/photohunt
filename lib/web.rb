@@ -36,9 +36,8 @@ module Photohunt
 					end
 				end
 
-				def get_exposure(data, type)
+				def get_exposure_mime(data, mime)
 					exposure = nil
-					mime = MIME::Types[type].first
 					return nil if mime == nil
 					case mime.content_type
 					when "image/jpeg"
@@ -46,8 +45,12 @@ module Photohunt
 					when "image/tiff"
 						exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
 					end
-					exposure = nil if exposure == ""
+					exposure = nil if exposure != nil && exposure.strip.empty?
 					return exposure
+				end
+
+				def get_exposure(data, type)
+					get_exposure_mime(data, MIME::Types[type].first)
 				end
 			end
 
@@ -307,24 +310,22 @@ module Photohunt
 										doc = unjudged_doc
 										dir = unjudged_dir
 									end
-									exposure = ""
+									exposure = nil
 									filename = photoctr.to_s
 									mime = MIME::Types[photo.mime].first
-									if mime != nil
-										begin
-											exposure = get_exposure(photo.data, photo.mime)
-										rescue => e
-											logger.error(e.to_s)
-											exposure = ""
-										end
-										filename += ".#{mime.extensions.first}" if mime.extensions != nil
+									begin
+										exposure = get_exposure_mime(photo.data, mime)
+									rescue => e
+										logger.error(e.to_s)
+										exposure = nil
 									end
+									filename += ".#{mime.extensions.first}" if mime != nil && mime.extensions != nil
 									zipfile.file.open("#{dir}/#{filename}", "w") do |file|
 										file.write(photo.data)
 									end
 
 									doc.printf("\n%d.\n", photoctr)
-									doc.printf("\tExposure Time: %s\n", exposure) if exposure != ""
+									doc.printf("\tExposure Time: %s\n", exposure) if exposure != nil
 									# TODO: Make sure updates don't change submission time.
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission.to_datetime > @game.end.to_datetime ? "LATE" : "")
 									if photo.clue_completions.length != 0
