@@ -46,8 +46,7 @@ module Photohunt
 					when "image/tiff"
 						exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
 					end
-					# TODO: Test this
-					raise RuntimeError, "EXPOSURE IS \"\"" if exposure == ""
+					exposure = nil if exposure == ""
 					return exposure
 				end
 			end
