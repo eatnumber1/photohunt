@@ -125,7 +125,7 @@ module Photohunt
 				end
 			end
 
-			before '/photos/new' do
+			post '/photos/new', :provides => :json do
 				content_type = request.env["CONTENT_TYPE"]
 				if content_type == nil || MIME::Types[content_type] != MIME::Types["multipart/form-data"]
 					raise MalformedResponse.new(:message => "Expecting Content-Type multipart/form-data")
@@ -137,9 +137,7 @@ module Photohunt
 						:message => "Unknown content-type #{params[:json][:type]} for json body"
 					) unless params[:json][:type] == "application/json"
 				end
-			end
 
-			post '/photos/new', :provides => :json do
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
 				begin
