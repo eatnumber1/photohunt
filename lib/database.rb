@@ -12,7 +12,10 @@ module Photohunt
 			inflect.irregular "bonus", "bonuses"
 		end
 
-		config = { "debug" => false }.merge(YAML.load_file("config.yml")).symbolize_keys!
+		config = {
+			"debug" => false,
+			"charset" => "utf8"
+		}.merge(YAML.load_file("config.yml")).symbolize_keys!
 		Bundler.require(config[:database].symbolize_keys![:adapter])
 		class RetryingDatabaseWrapper
 			def initialize(db)
@@ -32,6 +35,7 @@ module Photohunt
 			end
 		end
 		DB = RetryingDatabaseWrapper.new(Sequel.connect(config[:database]))
+		DB.convert_tinyint_to_bool = true if DB.adapter_scheme == :mysql2
 
 		if config[:debug]
 			require 'logger'

@@ -9,6 +9,7 @@ include Photohunt::Database
 module Photohunt
 	module Database
 		DB.transaction do
+			collation = DB.adapter_scheme == :mysql2 ? "utf8_bin" : "binary"
 			DB.create_table? :games do
 				String :id, :primary_key => true
 				DateTime :start, :null => false
@@ -24,7 +25,7 @@ module Photohunt
 			end
 
 			DB.create_table? :judges_tokens do
-				String :token, :null => false, :primary_key => true
+				String :token, :null => false, :primary_key => true, :collate => collation
 			end
 
 			DB.create_table? :tokens do
@@ -36,7 +37,7 @@ module Photohunt
 
 			DB.create_table? :tags do
 				primary_key :id
-				String :tag, :unique => true, :null => false
+				String :tag, :unique => true, :null => false, :collate => collation
 			end
 
 			DB.create_table? :clues do
