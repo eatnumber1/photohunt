@@ -150,12 +150,7 @@ module Photohunt
 						:cause => e
 					})
 				end
-				json = nil
-				if String === params[:json]
-					json = JSON.parse(params[:json])
-				else
-					json = JSON.parse(params[:json][:tempfile].read)
-				end
+				json = JSON.parse(String === params[:json] ? params[:json] : params[:json][:tempfile].read)
 				guid = Digest::SHA1.hexdigest(data)
 
 				DB.transaction do
