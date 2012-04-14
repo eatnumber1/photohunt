@@ -316,7 +316,7 @@ module Photohunt
 									begin
 										exposure = get_exposure_mime(photo.data, mime)
 									rescue => e
-										logger.error(e.to_s)
+										dump_errors!(e)
 										exposure = nil
 									end
 									filename += ".#{mime.extensions.first}" if mime != nil && mime.extensions != nil
