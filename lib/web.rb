@@ -50,12 +50,15 @@ module Photohunt
 					return exposure
 				end
 			end
+
+			configure do
+				enable :logging
+			end
 		end
 
 		class API < CommonWeb
 			configure do
 				disable :show_exceptions
-				enable :logging
 			end
 
 			before do
