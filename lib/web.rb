@@ -36,7 +36,7 @@ module Photohunt
 					end
 				end
 
-				def exposure(data, type)
+				def get_exposure(data, type)
 					exposure = nil
 					mime = MIME::Types[type].first
 					return nil if mime == nil
@@ -158,7 +158,7 @@ module Photohunt
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
 				begin
-					exposure(data, mime)
+					get_exposure(data, mime)
 				rescue => e
 					raise MalformedResponse.new({
 						:message => "Bad EXIF data",
