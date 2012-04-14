@@ -6,7 +6,7 @@ if ARGV.length < 1
 end
 
 $:.unshift File.expand_path("../lib", __FILE__)
-require 'gameid'
+require 'photohunt'
 require 'schema'
 require 'models'
 
@@ -15,55 +15,58 @@ include Photohunt::Database
 
 data = {}
 ARGV.each do |file|
-	data = data.merge(YAML.load_file(file))
+	data = data.merge(YAML.load_file(file)).symbolize_keys!
 end
 
 DB.transaction do
-	if data["game"] != nil
-		game_yml = data["game"]
+	if data[:game] != nil
+		game_yml = data[:game].symbolize_keys!
 		$game = Game.create(
 			:id => GAME_ID,
-			:start => game_yml["start"],
-			:end => game_yml["end"],
-			:max_photos => game_yml["max_photos"],
-			:max_judged_photos => game_yml["max_judged_photos"]
+			:start => game_yml[:start],
+			:end => game_yml[:end],
+			:max_photos => game_yml[:max_photos],
+			:max_judged_photos => game_yml[:max_judged_photos]
 		)
 	else
 		$game = Game[GAME_ID]
 	end
 
-	if data["clues"] != nil
-		data["clues"].each do |clue|
+	if data[:clues] != nil
+		data[:clues].each do |clue|
+			clue.symbolize_keys!
 			cluedb = Clue.create(
-				:description => clue["description"],
-				:points => clue["points"],
+				:description => clue[:description],
+				:points => clue[:points],
 				:game => $game
 			)
-			if clue["bonuses"] != nil
-				clue["bonuses"].each do |bonus|
+			if clue[:bonuses] != nil
+				clue[:bonuses].each do |bonus|
+					bonus.symbolize_keys!
 					Bonus.create(
-						:description => bonus["description"],
-						:points => bonus["points"],
+						:description => bonus[:description],
+						:points => bonus[:points],
 						:clue => cluedb
 					)
 				end
 			end
-			if clue["tags"] != nil
-				clue["tags"].each do |tag|
+			if clue[:tags] != nil
+				clue[:tags].each do |tag|
 					cluedb.add_tag(Tag.find_or_create(:tag => tag))
 				end
 			end
 		end
 	end
 
-	if data["teams"] != nil
-		data["teams"].each do |team|
+	if data[:teams] != nil
+		data[:teams].each do |team|
+			team.symbolize_keys!
 			teamdb = Team.create(
-				:name => team["name"],
+				:name => team[:name],
 				:game => $game
 			)
-			if team["tokens"] != nil
-				team["tokens"].each do |token|
+			if team[:tokens] != nil
+				team[:tokens].each do |token|
 					Token.create(
 						:token => token,
 						:game => $game,
@@ -74,8 +77,8 @@ DB.transaction do
 		end
 	end
 
-	if data["judge_tokens"] != nil
-		data["judge_tokens"].each do |judge_token|
+	if data[:judge_tokens] != nil
+		data[:judge_tokens].each do |judge_token|
 			JudgesToken.create(:token => judge_token)
 		end
 	end

@@ -1,12 +1,13 @@
 module Photohunt
 	module Errors
 		class Response < StandardError
-			attr_accessor :data, :json_code, :http_code
+			attr_accessor :data, :json_code, :http_code, :cause
 
 			def initialize(opts = {})
 				@data = opts[:data] if opts[:data] != nil
 				@json_code = opts[:json_code] if opts[:json_code] != nil
 				@http_code = opts[:http_code] if opts[:json_code] != nil
+				@cause = opts[:cause] if opts[:cause] != nil
 				super(opts[:message])
 			end
 
@@ -16,6 +17,10 @@ module Photohunt
 					:message => message,
 					:data => @data
 				}.to_json
+			end
+
+			def to_s
+				return @cause != nil ? @cause.to_s : super.to_s
 			end
 		end
 

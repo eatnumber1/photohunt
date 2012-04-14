@@ -6,7 +6,7 @@ require 'digest/sha1'
 require 'tempfile'
 require 'fileutils'
 
-require 'gameid'
+require 'photohunt'
 require 'errors'
 require 'database'
 require 'models'
@@ -28,12 +28,27 @@ module Photohunt
 				def authenticate_clues
 					begin
 						# This is done so that clients which only retrieve the clue sheet once can
-						# successfully retrieve it.
+						# successfully retrieve it even if the game hasn't started yet.
 						authenticate
 					rescue NotAuthorizedResponse
 						@game = Game[GAME_ID]
 						raise GameNotStartedResponse if @game.start.to_datetime > DateTime.now
 					end
+				end
+
+				def exposure(data, type)
+					exposure = nil
+					mime = MIME::Types[type].first
+					return nil if mime == nil
+					case mime.content_type
+					when "image/jpeg"
+						exposure = EXIFR::JPEG.new(StringIO.new(data)).date_time.to_s
+					when "image/tiff"
+						exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
+					end
+					# TODO: Test this
+					raise RuntimeError, "EXPOSURE IS \"\"" if exposure == ""
+					return exposure
 				end
 			end
 		end
@@ -125,6 +140,14 @@ module Photohunt
 			post '/photos/new', :provides => :json do
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
+				begin
+					exposure(data, mime)
+				rescue => e
+					raise MalformedResponse.new({
+						:message => "Bad EXIF data",
+						:cause => e
+					})
+				end
 				json = nil
 				if String === params[:json]
 					json = JSON.parse(params[:json])
@@ -199,7 +222,6 @@ module Photohunt
 
 		class Base < CommonWeb
 			before do
-				DB.reconnect
 				@game = Game[GAME_ID]
 			end
 
@@ -278,13 +300,9 @@ module Photohunt
 									mime = MIME::Types[photo.mime].first
 									if mime != nil
 										begin
-											case mime.content_type
-											when "image/jpeg"
-												exposure = EXIFR::JPEG.new(StringIO.new(photo.data)).date_time.to_s
-											when "image/tiff"
-												exposure = EXIFR::TIFF.new(StringIO.new(photo.data)).date_time.to_s
-											end
-										rescue
+											exposure = get_exposure(photo.data, photo.mime)
+										rescue => e
+											logger.error(e.to_s)
 											exposure = ""
 										end
 										filename += ".#{mime.extensions.first}" if mime.extensions != nil

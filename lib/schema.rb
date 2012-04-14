@@ -60,7 +60,8 @@ module Photohunt
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
-				if $config["database"]["adapter"] == "mysql2"
+				p DB.adapter_scheme
+				if DB.adapter_scheme == :mysql2
 					column :submission, "timestamp", :default => :now.sql_function
 				else
 					DateTime :submission, :default => "datetime('now','localtime')".lit

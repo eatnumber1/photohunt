@@ -12,28 +12,30 @@ module Photohunt
 			inflect.irregular "bonus", "bonuses"
 		end
 
-		$config = { :debug => false }.merge(YAML.load_file("config.yml"))
-		Bundler.require($config["database"]["adapter"])
-		DB = Sequel.connect($config["database"])
-		module DBConn
-			def reconnect
-				connect($config["database"])
+		config = { "debug" => false }.merge(YAML.load_file("config.yml")).symbolize_keys!
+		Bundler.require(config[:database].symbolize_keys![:adapter])
+		class RetryingDatabaseWrapper
+			def initialize(db)
+				@db = db
 			end
 
-			def ensure_connect
+			def method_missing(m, *args, &block)
+				@db.send(m, *args, &block)
+			end
+
+			def transaction(opts = {}, &block)
 				begin
-					test_connection
-				rescue
-					reconnect
+					@db.transaction(opts, &block)
+				rescue Sequel::DatabaseError => e
+					@db.transaction(opts, &block)
 				end
 			end
 		end
-		DB.extend(DBConn)
+		DB = RetryingDatabaseWrapper.new(Sequel.connect(config[:database]))
 
-		if $config["debug"]
+		if config[:debug]
 			require 'logger'
 			DB.logger = Logger.new($stdout)
-			DB.sql_log_level = :debug
 		end
 	end
 end

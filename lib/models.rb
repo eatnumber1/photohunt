@@ -5,7 +5,7 @@ Bundler.require(:default)
 require 'digest/sha1'
 require 'logger'
 
-require 'gameid'
+require 'photohunt'
 require 'database'
 
 module Photohunt
