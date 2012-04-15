@@ -1,28 +1,24 @@
 module Photohunt
 	module Errors
 		class Response < StandardError
-			attr_accessor :data, :json_code, :http_code, :cause
+			attr_accessor :data, :json_code, :http_code, :wrapped_exception
 
 			def initialize(opts = {})
 				@data = opts[:data] if opts[:data] != nil
 				@json_code = opts[:json_code] if opts[:json_code] != nil
 				@http_code = opts[:http_code] if opts[:http_code] != nil
-				message = opts[:message]
-				cause = opts[:cause]
-				if cause != nil
-					if message == nil
-						message = ""
+				msg = opts[:message]
+				wrapped_exception = opts[:wrapped_exception]
+				if wrapped_exception != nil
+					wrapped_exception_msg = "#{wrapped_exception.class} - #{wrapped_exception.message}"
+					if msg == nil
+						msg = wrapped_exception_msg
 					else
-						message = "#{message}: "
+						msg += " ( #{wrapped_exception_msg} )"
 					end
-					message += "#{cause.class}: #{cause.message}"
 				end
-				ret = super(message)
-				if cause != nil
-					@cause = cause
-					set_backtrace = @cause.backtrace
-				end
-				ret
+				super(msg)
+				set_backtrace(wrapped_exception.backtrace) if wrapped_exception != nil
 			end
 
 			def to_json
@@ -34,7 +30,7 @@ module Photohunt
 			end
 
 			def to_s
-				return @cause != nil ? @cause.to_s : super.to_s
+				return wrapped_exception != nil ? wrapped_exception.to_s : super.to_s
 			end
 		end
 
@@ -105,7 +101,7 @@ module Photohunt
 				else
 					{ :message => "Bad exif metadata" }.merge(opts)
 				end
-				super opts
+				super(opts)
 			end
 		end
 	end

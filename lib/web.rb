@@ -51,10 +51,10 @@ module Photohunt
 							exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
 						end
 					rescue => e
-						exif_opts = {}
-						exif_opts[:guid] = opts[:photo].guid if opts[:photo] != nil
-						exif_opts[:cause] = e
-						raise ExifError.new(exif_opts)
+						raise ExifError.new(
+							:guid => opts[:photo] == nil ? nil : opts[:photo].guid,
+							:wrapped_exception => e
+						)
 					end
 					exposure = nil if exposure != nil && exposure.strip.empty?
 					return exposure
@@ -173,10 +173,10 @@ module Photohunt
 						:type => mime
 					)
 				rescue ExifError => e
-					raise MalformedResponse.new({
+					raise MalformedResponse.new(
 						:message => "Bad EXIF data",
-						:cause => e
-					})
+						:wrapped_exception => e
+					)
 				end
 				json = JSON.parse(String === params[:json] ? params[:json] : params[:json][:tempfile].read)
 				guid = Digest::SHA1.hexdigest(data)
