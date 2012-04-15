@@ -42,6 +42,7 @@ module Photohunt
 			unrestrict_primary_key
 			one_to_many :clue_completions, :eager => :bonus_completions
 			many_to_one :team
+			plugin :lazy_attributes, :data
 		end
 
 		class ClueCompletion < Sequel::Model
