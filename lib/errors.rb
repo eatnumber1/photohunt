@@ -6,9 +6,23 @@ module Photohunt
 			def initialize(opts = {})
 				@data = opts[:data] if opts[:data] != nil
 				@json_code = opts[:json_code] if opts[:json_code] != nil
-				@http_code = opts[:http_code] if opts[:json_code] != nil
-				@cause = opts[:cause] if opts[:cause] != nil
-				super(opts[:message])
+				@http_code = opts[:http_code] if opts[:http_code] != nil
+				message = opts[:message]
+				cause = opts[:cause]
+				if cause != nil
+					if message == nil
+						message = ""
+					else
+						message = "#{message}: "
+					end
+					message += "#{cause.class}: #{cause.message}"
+				end
+				ret = super(message)
+				if cause != nil
+					@cause = cause
+					set_backtrace = @cause.backtrace
+				end
+				ret
 			end
 
 			def to_json
@@ -75,6 +89,23 @@ module Photohunt
 				@json_code = 5
 				@http_code = 401
 				super({ :message => "Game has not started" }.merge(opts))
+			end
+		end
+
+		class ExifError < Response
+			def initialize(opts = {})
+				@json_code = 6
+				if opts[:guid] != nil
+					msg = "Bad exif metadata for photo #{opts[:guid]}"
+					if opts[:message] != nil
+						opts[:message] += ": #{msg}"
+					else
+						opts[:message] = msg
+					end
+				else
+					{ :message => "Bad exif metadata" }.merge(opts)
+				end
+				super opts
 			end
 		end
 	end

@@ -36,21 +36,28 @@ module Photohunt
 					end
 				end
 
-				def get_exposure_mime(data, mime)
+				def get_exposure(opts = {})
+					mime = opts[:mime]
+					mime = MIME::Types[opts[:type]].first if mime == nil
+					data = opts[:data]
+					data = opts[:photo].data if data == nil
 					exposure = nil
 					return nil if mime == nil
+					begin
 					case mime.content_type
-					when "image/jpeg"
-						exposure = EXIFR::JPEG.new(StringIO.new(data)).date_time.to_s
-					when "image/tiff"
-						exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
+						when "image/jpeg"
+							exposure = EXIFR::JPEG.new(StringIO.new(data)).date_time.to_s
+						when "image/tiff"
+							exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
+						end
+					rescue => e
+						exif_opts = {}
+						exif_opts[:guid] = opts[:photo].guid if opts[:photo] != nil
+						exif_opts[:cause] = e
+						raise ExifError.new(exif_opts)
 					end
 					exposure = nil if exposure != nil && exposure.strip.empty?
 					return exposure
-				end
-
-				def get_exposure(data, type)
-					get_exposure_mime(data, MIME::Types[type].first)
 				end
 			end
 
@@ -161,8 +168,11 @@ module Photohunt
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
 				begin
-					get_exposure(data, mime)
-				rescue => e
+					get_exposure(
+						:data => data,
+						:type => mime
+					)
+				rescue ExifError => e
 					raise MalformedResponse.new({
 						:message => "Bad EXIF data",
 						:cause => e
@@ -314,10 +324,12 @@ module Photohunt
 									filename = photoctr.to_s
 									mime = MIME::Types[photo.mime].first
 									begin
-										exposure = get_exposure_mime(photo.data, mime)
-									rescue => e
+										exposure = get_exposure(
+											:photo => photo,
+											:mime => mime
+										)
+									rescue ExifError => e
 										dump_errors!(e)
-										exposure = nil
 									end
 									filename += ".#{mime.extensions.first}" if mime != nil && mime.extensions != nil
 									zipfile.file.open("#{dir}/#{filename}", "w") do |file|
