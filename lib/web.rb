@@ -78,6 +78,8 @@ module Photohunt
 			end
 
 			before do
+				content_type :json
+				pass unless request.accept? 'application/json'
 				@game = Game[GAME_ID]
 			end
 
@@ -97,15 +99,11 @@ module Photohunt
 					ex = UnspecResponse.new
 				end
 				dump.call
-				halt ex.http_code, ex.to_json
+				halt ex.http_code, { "Content-Type" => "application/json" }, ex.to_json
 			end
 
 			get '/error' do
 				raise RuntimeException, "LEMONADE"
-			end
-
-			before do
-				pass unless request.accept? 'application/json'
 			end
 
 			before '/info' do
@@ -158,9 +156,9 @@ module Photohunt
 				end
 			end
 
-			post '/photos/new', :provides => :json do
-				content_type = request.env["CONTENT_TYPE"]
-				if content_type == nil || MIME::Types[content_type] != MIME::Types["multipart/form-data"]
+			post '/photos/new' do
+				ct = request.env["CONTENT_TYPE"]
+				if ct == nil || MIME::Types[ct] != MIME::Types["multipart/form-data"]
 					raise MalformedResponse.new(:message => "Expecting Content-Type multipart/form-data")
 				end
 
@@ -205,7 +203,7 @@ module Photohunt
 				respond guid
 			end
 
-			put '/photos/edit', :provides => :json do
+			put '/photos/edit' do
 				data = JSON.parse(request.body.read)
 				DB.transaction do
 					photo = @token.team.photos_dataset.for_update[:guid => params[:id]]
@@ -222,7 +220,7 @@ module Photohunt
 				authenticate_clues
 			end
 
-			get '/clues', :provides => :json do
+			get '/clues' do
 				# TODO: Doing JSON.parse right after Clue.to_json is really inefficient
 				respond JSON.parse(@game.clues_dataset.eager(:tags, :bonuses).to_json(
 					:naked => true,
@@ -237,7 +235,7 @@ module Photohunt
 				))
 			end
 
-			get '/info', :provides => :json do
+			get '/info' do
 				DB.transaction do
 					team = @token.team
 					respond({
@@ -253,6 +251,8 @@ module Photohunt
 
 		class Base < CommonWeb
 			before do
+				content_type :text
+				pass unless request.accept? "text/plain"
 				@game = Game[GAME_ID]
 			end
 
@@ -268,7 +268,7 @@ module Photohunt
 				authenticate_clues
 			end
 
-			get '/clues', :provides => :text do
+			get '/clues' do
 				pass unless request.accept? 'text/plain'
 				out = StringIO.new
 				out.printf("Clue sheet for Photo Hunt\n\n")
@@ -287,7 +287,7 @@ module Photohunt
 
 			# The zipfile library seems to create temporary working files in /tmp and
 			# doesn't delete them. I can't help this
-			get '/export.zip', :provides => :zip do
+			get '/export.zip' do
 				pass unless request.accept? 'application/zip'
 				pass if JudgesToken[params[:token]] == nil
 				tempfile = Tempfile.new("photohunt-export")
