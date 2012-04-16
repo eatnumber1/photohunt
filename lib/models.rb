@@ -13,6 +13,7 @@ module Photohunt
 		include Photohunt::GameID
 
 		Sequel::Model.plugin :json_serializer
+		Sequel.datetime_class = DateTime
 
 		class Bonus < Sequel::Model
 			many_to_one :clue
@@ -43,6 +44,7 @@ module Photohunt
 			one_to_many :clue_completions, :eager => :bonus_completions
 			many_to_one :team
 			plugin :lazy_attributes, :data
+			plugin :typecast_on_load, :submission
 		end
 
 		class ClueCompletion < Sequel::Model
@@ -68,6 +70,7 @@ module Photohunt
 			one_to_many :teams
 			one_to_many :clues
 			one_to_many :tokens
+			plugin :typecast_on_load, :start, :end
 		end
 
 		class JudgesToken < Sequel::Model

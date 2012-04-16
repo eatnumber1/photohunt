@@ -32,7 +32,7 @@ module Photohunt
 						authenticate
 					rescue NotAuthorizedResponse
 						@game = Game[GAME_ID]
-						raise GameNotStartedResponse if @game.start.to_datetime > DateTime.now
+						raise GameNotStartedResponse if @game.start > DateTime.now
 					end
 				end
 
@@ -56,7 +56,13 @@ module Photohunt
 							:wrapped_exception => e
 						)
 					end
-					exposure = nil if exposure != nil && exposure.strip.empty?
+					if exposure != nil
+						if exposure.strip.empty?
+							exposure = nil
+						else
+							exposure = DateTime.parse(exposure)
+						end
+					end
 					return exposure
 				end
 			end
@@ -337,9 +343,9 @@ module Photohunt
 									end
 
 									doc.printf("\n%d.\n", photoctr)
-									doc.printf("\tExposure Time: %s\n", exposure) if exposure != nil
-									# TODO: Make sure updates don't change submission time.
-									doc.printf("\tSubmission Time: %s %s\n", photo.submission, photo.submission.to_datetime > @game.end.to_datetime ? "LATE" : "")
+									format_time = lambda { |time| time.strftime("%r %D") }
+									doc.printf("\tExposure Time:   %s\n", format_time.call(exposure)) if exposure != nil
+									doc.printf("\tSubmission Time: %s %s\n", format_time.call(photo.submission), photo.submission > @game.end ? "LATE" : "")
 									if photo.clue_completions.length != 0
 										points = 0
 										clue_str = StringIO.new
@@ -354,7 +360,7 @@ module Photohunt
 												points += bonus.points
 											end
 										end
-										doc.printf("\tPoints: %+d\n", points)
+										doc.printf("\tPoints: %d\n", points)
 										clue_str.rewind
 										doc.printf("%s", clue_str.read)
 									end
@@ -367,6 +373,7 @@ module Photohunt
 
 									photoctr += 1
 									# This is a hack so that the gc can collect the data. It modifies sequel internals.
+									# The photo object is now broken.
 									photo.values[:data] = nil
 								end
 								end
