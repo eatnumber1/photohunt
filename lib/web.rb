@@ -366,7 +366,8 @@ module Photohunt
 									end
 
 									photoctr += 1
-
+									# This is a hack so that the gc can collect the data. It modifies sequel internals.
+									photo.values[:data] = nil
 								end
 								end
 							end
