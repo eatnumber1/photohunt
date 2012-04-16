@@ -94,7 +94,7 @@ info = "{",
 		"maxJudgeablePhotos=", number,
 "}"
 
-(* Example - Uses RFC 2616 dateTime format
+(* Example - Uses ISO 8601 dateTime format
 	{
 		"team": "faggot",
 		"startTime": "<start-time>",

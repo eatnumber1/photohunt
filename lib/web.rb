@@ -242,8 +242,8 @@ module Photohunt
 					team = @token.team
 					respond({
 						:team => team.name,
-						:startTime => team.game.start,
-						:endTime => team.game.end,
+						:startTime => team.game.start.iso8601,
+						:endTime => team.game.end.iso8601,
 						:maxPhotos => team.game.max_photos,
 						:maxJudgedPhotos => team.game.max_judged_photos
 					})
