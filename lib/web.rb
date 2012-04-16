@@ -361,8 +361,7 @@ module Photohunt
 											end
 										end
 										doc.printf("\tPoints: %d\n", points)
-										clue_str.rewind
-										doc.printf("%s", clue_str.read)
+										doc.printf("%s", clue_str.string)
 									end
 
 									if photo.notes != nil && photo.notes != ""
