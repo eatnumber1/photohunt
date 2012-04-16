@@ -272,8 +272,8 @@ module Photohunt
 				pass unless request.accept? 'text/plain'
 				out = StringIO.new
 				out.printf("Clue sheet for Photo Hunt\n\n")
-				out.printf("%-20s %s\n", "Start Time: ", @game.start)
-				out.printf("%-20s %s\n", "End Time: ", @game.end)
+				out.printf("%-20s %s\n", "Start Time: ", @game.start.pretty)
+				out.printf("%-20s %s\n", "End Time: ", @game.end.pretty)
 				out.printf("\n")
 				@game.clues_dataset.order(:id).eager(:tags, :bonuses => proc{ |ds| ds.order(:id) }).all do |clue|
 					out.printf("%-4s\t%+5d\t%s %s\n", "#{clue.id}.", clue.points, clue.description, clue.tags.empty? ? "" : clue.tags.map{ |t| t.tag })
@@ -343,9 +343,8 @@ module Photohunt
 									end
 
 									doc.printf("\n%d.\n", photoctr)
-									format_time = lambda { |time| time.strftime("%r %D") }
-									doc.printf("\tExposure Time:   %s\n", format_time.call(exposure)) if exposure != nil
-									doc.printf("\tSubmission Time: %s %s\n", format_time.call(photo.submission), photo.submission > @game.end ? "LATE" : "")
+									doc.printf("\tExposure Time:   %s\n", exposure.pretty) if exposure != nil
+									doc.printf("\tSubmission Time: %s %s\n", photo.submission.pretty, photo.submission > @game.end ? "LATE" : "")
 									if photo.clue_completions.length != 0
 										points = 0
 										clue_str = StringIO.new
