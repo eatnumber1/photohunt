@@ -370,9 +370,9 @@ module Photohunt
 									end
 
 									photoctr += 1
-									# This is a hack so that the gc can collect the data. It modifies sequel internals.
-									# The photo object is now broken.
-									photo.values[:data] = nil
+									# Now that we're done with this photo, throw out the data (we can get it again later
+									# with photo.data) so the gc can collect it.
+									photo.values.delete(:data)
 								end
 								end
 							end
