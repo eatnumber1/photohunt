@@ -5,8 +5,11 @@ gem 'sinatra'
 gem 'mime-types', :require => 'mime/types'
 gem 'zip', :require => 'zip/zipfilesystem'
 gem 'exifr'
-gem 'sequel'
 gem 'json'
+# TODO: mysql2 actually requires a fix in sequel HEAD that will be released as
+# part of sequel 3.35
+gem 'sequel'
+#gem 'sequel', ">= 3.35"
 
 group :mysql2 do
 	gem 'mysql2'
