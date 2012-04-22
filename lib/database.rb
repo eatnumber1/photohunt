@@ -23,7 +23,7 @@ module Photohunt
 			end
 
 			def method_missing(m, *args, &block)
-				@db.send(m, *args, &block)
+				@db.public_send(m, *args, &block)
 			end
 
 			def transaction(opts = {}, &block)
