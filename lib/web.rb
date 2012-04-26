@@ -318,7 +318,7 @@ module Photohunt
 								judged_doc.puts s
 								unjudged_doc.puts s
 
-								digit_count = team.photos.length.to_s[0]
+								digit_count = team.photos.length.to_s.length
 								team.photos.each do |photo|
 									if photo.judge
 										doc = judged_doc
@@ -328,7 +328,10 @@ module Photohunt
 										dir = unjudged_dir
 									end
 									exposure = nil
-									filename = photoctr.to_s
+									s = StringIO.new
+									s.printf "%0#{digit_count}d", photoctr
+									photoctr_s = s.string
+									filename = photoctr_s
 									mime = MIME::Types[photo.mime].first
 									begin
 										exposure = get_exposure(
@@ -343,7 +346,7 @@ module Photohunt
 										file.write(photo.data)
 									end
 
-									doc.printf("\n%0#{digit_count}d.\n", photoctr)
+									doc.printf("\n%s.\n", photoctr_s)
 									doc.printf("\tExposure Time:   %s\n", exposure.pretty) if exposure != nil
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission.pretty, photo.submission > @game.end ? "LATE" : "")
 									if photo.clue_completions.length != 0
