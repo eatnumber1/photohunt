@@ -318,6 +318,7 @@ module Photohunt
 								judged_doc.puts s
 								unjudged_doc.puts s
 
+								digit_count = team.photos.length.to_s[0]
 								team.photos.each do |photo|
 									if photo.judge
 										doc = judged_doc
@@ -342,7 +343,7 @@ module Photohunt
 										file.write(photo.data)
 									end
 
-									doc.printf("\n%d.\n", photoctr)
+									doc.printf("\n%0#{digit_count}d.\n", photoctr)
 									doc.printf("\tExposure Time:   %s\n", exposure.pretty) if exposure != nil
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission.pretty, photo.submission > @game.end ? "LATE" : "")
 									if photo.clue_completions.length != 0
