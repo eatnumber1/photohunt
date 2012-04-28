@@ -1,6 +1,6 @@
 development:
-    logfile: log/sinatra.log
     debug: true
 
 production:
-    debug: true
+    logfile: log/sinatra.log
+    debug: false
