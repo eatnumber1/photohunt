@@ -299,12 +299,15 @@ module Photohunt
 					zipfile.dir.mkdir(dirbase)
 
 					DB.transaction do
-						@game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
-								ds.order(:exposure.asc, :submission.asc).eager(:clue_completions => proc{ |ds|
-									ds.order(:clue_id).eager(:clue, :bonus_completions => proc{ |ds|
-										ds.order(:bonus_id).eager(:bonus)
-									})
-								})
+						@game.teams_dataset.order(:exposure.asc, :submission.asc).eager_graph({
+							:photos => {
+								:clue_completions => [
+									:clue,
+									{
+										:bonus_completions => :bonus
+									}
+								]
+							}
 						}).all do |team|
 							photoctr = 1
 							judged_dir = "#{dirbase}/#{team.name}"
