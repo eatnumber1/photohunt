@@ -45,6 +45,7 @@ module Photohunt
 			many_to_one :team
 			plugin :lazy_attributes, :data
 			plugin :typecast_on_load, :submission
+			plugin :typecast_on_load, :exposure
 		end
 
 		class ClueCompletion < Sequel::Model
