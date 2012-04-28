@@ -300,12 +300,7 @@ module Photohunt
 
 					DB.transaction do
 						@game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
-								if DB.adapter_scheme == :mysql2
-									e = :exposure.asc(:nulls => :last) 
-								else
-									e = :exposure.asc
-								end
-								ds.order(e, :submission.asc).eager(:clue_completions => proc{ |ds|
+								ds.order(:exposure.asc, :submission.asc).eager(:clue_completions => proc{ |ds|
 									ds.order(:clue_id).eager(:clue, :bonus_completions => proc{ |ds|
 										ds.order(:bonus_id).eager(:bonus)
 									})
