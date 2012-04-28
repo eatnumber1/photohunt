@@ -8,7 +8,6 @@ require 'photohunt'
 
 module Photohunt
 	module Database
-
 		DB_CONF = YAML.load_file("config/database.yml")[ENV["RACK_ENV"]].symbolize_keys!
 
 		Sequel.inflections do |inflect|
