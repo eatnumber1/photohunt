@@ -299,7 +299,7 @@ module Photohunt
 					zipfile.dir.mkdir(dirbase)
 
 					DB.transaction do
-						@game.teams_dataset.order(:exposure.asc, :submission.asc).eager_graph({
+						@game.teams_dataset.eager_graph({
 							:photos => {
 								:clue_completions => [
 									:clue,
@@ -308,7 +308,7 @@ module Photohunt
 									}
 								]
 							}
-						}).all do |team|
+						}).order(:exposure.asc, :submission.asc).all do |team|
 							photoctr = 1
 							judged_dir = "#{dirbase}/#{team.name}"
 							unjudged_dir = "#{judged_dir}/unjudged"
