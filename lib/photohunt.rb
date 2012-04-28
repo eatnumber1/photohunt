@@ -22,14 +22,18 @@ end
 
 module Photohunt
 	module Logging
-		LOG_CONF = YAML.load_file("config/logging.yml")[ENV["RACK_ENV"]].symbolize_keys!
+		if ENV.has_key? "RACK_ENV"
+			LOG_CONF = YAML.load_file("config/logging.yml")[ENV["RACK_ENV"]].symbolize_keys!
 
-		if LOG_CONF.has_key? :logfile
-			logfile = File.new(LOG_CONF[:logfile], "a+")
-			# Apparently we can't do line buffering in ruby.
-			logfile.sync = true
-			$stdout.reopen(logfile)
-			$stderr.reopen(logfile)
+			if LOG_CONF.has_key? :logfile
+				logfile = File.new(LOG_CONF[:logfile], "a+")
+				# Apparently we can't do line buffering in ruby.
+				logfile.sync = true
+				$stdout.reopen(logfile)
+				$stderr.reopen(logfile)
+			end
+		else
+			LOG_CONF = {}
 		end
 		LOGGER = Logger.new($stdout)
 	end
