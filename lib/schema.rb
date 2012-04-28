@@ -61,6 +61,7 @@ module Photohunt
 				FalseClass :judge, :null => true
 				String :notes, :text => true, :null => true
 				String :mime, :null => false
+				DateTime :exposure, :null => true
 				if DB.adapter_scheme == :mysql2
 					column :submission, "timestamp", :default => :now.sql_function
 				else

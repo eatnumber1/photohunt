@@ -1,0 +1,11 @@
+# SQLite suffers from a "database is locked" race condition.
+development:
+    adapter: sqlite
+    database: photohunt.sql
+
+production:
+    adapter: mysql2
+    host: db.csh.rit.edu
+    user: photohunt
+    password: apassword
+    database: photohunt

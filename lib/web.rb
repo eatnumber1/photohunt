@@ -45,10 +45,8 @@ module Photohunt
 					return nil if mime == nil
 					begin
 					case mime.content_type
-						when "image/jpeg"
+						when "image/jpeg", "image/tiff"
 							exposure = EXIFR::JPEG.new(StringIO.new(data)).date_time.to_s
-						when "image/tiff"
-							exposure = EXIFR::TIFF.new(StringIO.new(data)).date_time.to_s
 						end
 					rescue => e
 						raise ExifError.new(
@@ -171,8 +169,9 @@ module Photohunt
 
 				data = params[:photo][:tempfile].read
 				mime = params[:photo][:type]
+				exposure = nil
 				begin
-					get_exposure(
+					exposure = get_exposure(
 						:data => data,
 						:type => mime
 					)
@@ -195,7 +194,8 @@ module Photohunt
 						:judge => json["judge"],
 						:notes => json["notes"],
 						:mime => mime,
-						:team => team
+						:team => team,
+						:exposure => exposure
 					)
 					add_clue_completions photo, json
 				end
@@ -300,7 +300,7 @@ module Photohunt
 
 					DB.transaction do
 						@game.teams_dataset.order(:name).eager(:photos => proc{ |ds|
-								ds.order(:submission).eager(:clue_completions => proc{ |ds|
+								ds.order(:exposure).order(:submission).eager(:clue_completions => proc{ |ds|
 									ds.order(:clue_id).eager(:clue, :bonus_completions => proc{ |ds|
 										ds.order(:bonus_id).eager(:bonus)
 									})
@@ -333,21 +333,13 @@ module Photohunt
 									photoctr_s = s.string
 									filename = photoctr_s
 									mime = MIME::Types[photo.mime].first
-									begin
-										exposure = get_exposure(
-											:photo => photo,
-											:mime => mime
-										)
-									rescue ExifError => e
-										dump_errors!(e)
-									end
 									filename += ".#{mime.extensions.first}" if mime != nil && mime.extensions != nil
 									zipfile.file.open("#{dir}/#{filename}", "w") do |file|
 										file.write(photo.data)
 									end
 
 									doc.printf("\n%s.\n", photoctr_s)
-									doc.printf("\tExposure Time:   %s\n", exposure.pretty) if exposure != nil
+									doc.printf("\tExposure Time:   %s\n", photo.exposure.pretty) if photo.exposure != nil
 									doc.printf("\tSubmission Time: %s %s\n", photo.submission.pretty, photo.submission > @game.end ? "LATE" : "")
 									if photo.clue_completions.length != 0
 										points = 0
