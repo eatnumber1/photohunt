@@ -1,0 +1,37 @@
+API
+
+// Create judges
+//	/judge/
+Create games
+	/games/new
+Create teams
+	/teams/new
+Create clues
+	/clues/new
+
+Modify games
+	/games/edit
+Modify teams
+	/teams/edit
+// Modify judges
+//	/judges/edit
+Modify clues
+	/clues/edit
+
+Retrieve photos
+	/photos/get (multipart?)
+Retrieve metadata
+	/photos/get (multipart?)
+
+Retrieve team information
+	/teams/get
+Retrieve clues
+	/clues/get
+
+Assign points
+	/judge/photos/edit
+Assign judges notes
+	/judge/photos/edit
+
+Export to zip
+	/export.zip

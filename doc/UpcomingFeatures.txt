@@ -1,0 +1,40 @@
+Judges authentication
+
+Game creation / management
+	Add new judges
+		Judges have tokens
+	Game selection screen
+	New game
+	set start time
+	    end time
+	    max photos
+	    max photos judged (<= max photos)
+	Clues
+		description
+		points
+		Bonuses
+			description
+			points
+		Tags (>= 0)
+	Team creation
+		Tokens
+		Names
+
+Judging
+	View photos
+	View notes
+	View clues tagged on photos
+	Judges can assign points
+	Judges can add "judge notes"
+	Team name
+	Judged or unjudged
+	Photo #
+	Exposure time
+	Submission time (also a late warning)
+	Anticipated points
+	Judges can export to zip & text (or have a full screen presentation mode)
+	Viewing interface
+		Unauthenticated
+		ONLY ACCESSIBLE AFTER THE GAME IS JUDGED & PRESENTED
+		Button to enable the viewing interface by judges
+		Read-only
