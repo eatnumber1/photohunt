@@ -1,2 +1,3 @@
-To initialize the SQL database, run the yaml.rb script with files like those
-in the yml/ directory as the arguments.
+To initialize the SQL database, run the db_init.rb script with files like those
+in the yml/ directory as the arguments. Remember to set the RACK_ENV environment
+variable to either "production" or "development" when you run db_init.rb.
