@@ -3,6 +3,7 @@ Judges authentication
 Game creation / management
 	Add new judges
 		Judges have tokens
+		Judges have names
 	Game selection screen
 	New game
 	set start time
