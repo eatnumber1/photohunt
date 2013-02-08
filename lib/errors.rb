@@ -1,3 +1,5 @@
+require 'xmlsimple'
+
 module Photohunt
 	module Errors
 		class Response < StandardError
@@ -21,12 +23,33 @@ module Photohunt
 				set_backtrace(wrapped_exception.backtrace) if wrapped_exception != nil
 			end
 
-			def to_json
+			def to_hash
 				{
 					:code => @json_code,
 					:message => message,
 					:data => @data
-				}.to_json
+				}
+			end
+
+			def to_json
+				to_hash.to_json
+			end
+
+			def to_xml(options = {}, &block)
+				builder = Nokogiri::XML::Builder.new do |xml|
+					xml.photohunt do
+						to_hash.each do |k, v|
+							if k == :data && v == nil then
+								xml.data do
+									block.call xml, options.merge(:builder => xml) if block != nil
+								end
+							else
+								xml.send k, v
+							end
+						end
+					end
+				end
+				builder.to_xml
 			end
 
 			def to_s

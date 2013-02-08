@@ -5,6 +5,7 @@ Bundler.require(:default)
 require 'digest/sha1'
 require 'tempfile'
 require 'fileutils'
+require 'uuid'
 
 require 'photohunt'
 require 'errors'
@@ -25,43 +26,9 @@ module Photohunt
 					@game = @token.game
 				end
 
-				def authenticate_clues
-					begin
-						# This is done so that clients which only retrieve the clue sheet once can
-						# successfully retrieve it even if the game hasn't started yet.
-						authenticate
-					rescue NotAuthorizedResponse
-						@game = Game[GAME_ID]
-						raise GameNotStartedResponse if @game.start > DateTime.now
-					end
-				end
-
-				def get_exposure(opts = {})
-					mime = opts[:mime]
-					mime = MIME::Types[opts[:type]].first if mime == nil
-					data = opts[:data]
-					data = opts[:photo].data if data == nil
-					exposure = nil
-					return nil if mime == nil
-					begin
-					case mime.content_type
-						when "image/jpeg", "image/tiff"
-							exposure = EXIFR::JPEG.new(StringIO.new(data)).date_time.to_s
-						end
-					rescue => e
-						raise ExifError.new(
-							:guid => opts[:photo] == nil ? nil : opts[:photo].guid,
-							:wrapped_exception => e
-						)
-					end
-					if exposure != nil
-						if exposure.strip.empty?
-							exposure = nil
-						else
-							exposure = DateTime.parse(exposure)
-						end
-					end
-					return exposure
+				def authenticate_judge
+					@token = JudgesToken[params[:token]]
+					raise NotAuthorizedResponse.new(:token => params[:token]) if @token == nil
 				end
 			end
 
@@ -70,186 +37,7 @@ module Photohunt
 			end
 		end
 
-		class API < CommonWeb
-			configure do
-				disable :show_exceptions, :dump_errors
-			end
-
-			before do
-				content_type :json
-				pass unless request.accept? 'application/json'
-				@game = Game[GAME_ID]
-			end
-
-			error do
-				ex = env['sinatra.error']
-				_ex = ex
-				dump = lambda do
-					dump_errors!(_ex)
-				end
-				if Response === ex
-					if NotAuthorizedResponse === ex
-						dump = lambda{ logger.warn("Unauthorized login with token #{ex.token}") }
-					else
-						# Do nothing
-					end
-				else
-					ex = UnspecResponse.new
-				end
-				dump.call
-				halt ex.http_code, { "Content-Type" => "application/json" }, ex.to_json
-			end
-
-			get '/error' do
-				raise RuntimeException, "LEMONADE"
-			end
-
-			before '/info' do
-				authenticate
-			end
-
-			before '/photos/*' do
-				authenticate
-			end
-
-			helpers do
-				def respond(data)
-					SuccessResponse.new(:data => data).to_json
-				end
-
-				def add_clue_completions(photo, data)
-					clues = {}
-					data["clues"].each do |clue|
-						clues[clue["id"]] = clue["bonus_id"]
-					end
-					DB.transaction do
-						# TODO: Do this in fewer lines of code by loading the cluedb into a hash.
-						cluedb = @game.clues_dataset.filter(:id => clues.keys).eager(:bonuses).all
-						# Validate the clue IDs
-						raise MalformedResponse.new(:message => "Not all clue IDs specified were found") unless cluedb.length == clues.keys.length
-						# Validate the bonus IDs
-						cluedb.each do |clue|
-							bonuses = clues[clue.id]
-							unless bonuses == nil || bonuses.empty?
-								bonusdb_ids = clue.bonuses.map{ |b| b.id }
-								bonuses.each do |bonus_id|
-									raise MalformedResponse.new(:message => "Bonus ID #{bonus_id} for clue ID #{clue.id} not found") unless bonusdb_ids.include? bonus_id
-								end
-							end
-						end
-						# Add the completions
-						cluedb.each do |clue|
-							clue_completion = ClueCompletion.create(
-								:clue => clue,
-								:photo => photo
-							)
-							bonuses = clues[clue.id]
-							unless bonuses == nil || bonuses.empty?
-								clue.bonuses.reject{ |b| ! clues[clue.id].include? b.id }.each do |bonus|
-									clue_completion.add_bonus_completion(:bonus => bonus)
-								end
-							end
-						end
-					end
-				end
-			end
-
-			post '/photos/new' do
-				ct = request.env["CONTENT_TYPE"]
-				if ct == nil || MIME::Types[ct] != MIME::Types["multipart/form-data"]
-					raise MalformedResponse.new(:message => "Expecting Content-Type multipart/form-data")
-				end
-
-				raise MalformedResponse.new("No JSON body provided") if params[:json] == nil
-				unless String === params[:json]
-					raise MalformedResponse.new(
-						:message => "Unknown content-type #{params[:json][:type]} for json body"
-					) unless params[:json][:type] == "application/json"
-				end
-
-				data = params[:photo][:tempfile].read
-				mime = params[:photo][:type]
-				exposure = nil
-				begin
-					exposure = get_exposure(
-						:data => data,
-						:type => mime
-					)
-				rescue ExifError => e
-					raise MalformedResponse.new(
-						:message => "Bad EXIF data",
-						:wrapped_exception => e
-					)
-				end
-				json = JSON.parse(String === params[:json] ? params[:json] : params[:json][:tempfile].read)
-				guid = Digest::SHA1.hexdigest(data)
-
-				DB.transaction do
-					team = @token.team
-					photo = team.photos_dataset.for_update[:guid => guid]
-					photo.delete if photo != nil
-					photo = Photo.create(
-						:guid => guid,
-						:data => data,
-						:judge => json["judge"],
-						:notes => json["notes"],
-						:mime => mime,
-						:team => team,
-						:exposure => exposure
-					)
-					add_clue_completions photo, json
-				end
-
-				respond guid
-			end
-
-			put '/photos/edit' do
-				data = JSON.parse(request.body.read)
-				DB.transaction do
-					photo = @token.team.photos_dataset.for_update[:guid => params[:id]]
-					raise NotFoundResponse.new(:message => "Photo #{params[:id]} not found") if photo == nil
-					photo.update(:judge => data["judge"], :notes => data["notes"])
-					photo.clue_completions_dataset.delete
-					add_clue_completions photo, data
-				end
-
-				respond nil
-			end
-
-			before '/clues' do
-				authenticate_clues
-			end
-
-			get '/clues' do
-				# TODO: Doing JSON.parse right after Clue.to_json is really inefficient
-				respond JSON.parse(@game.clues_dataset.eager(:tags, :bonuses).to_json(
-					:naked => true,
-					:except => :game_id,
-					:include => {
-						:bonuses => {
-							:except => :clue_id,
-							:naked => true
-						},
-						:tags => {}
-					}
-				))
-			end
-
-			get '/info' do
-				DB.transaction do
-					team = @token.team
-					respond({
-						:team => team.name,
-						:startTime => team.game.start.iso8601,
-						:endTime => team.game.end.iso8601,
-						:maxPhotos => team.game.max_photos,
-						:maxJudgedPhotos => team.game.max_judged_photos
-					})
-				end
-			end
-		end
-
-		class Base < CommonWeb
+		class User < CommonWeb
 			before do
 				content_type :text
 				pass unless request.accept? "text/plain"

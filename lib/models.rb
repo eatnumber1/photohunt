@@ -13,6 +13,7 @@ module Photohunt
 		include Photohunt::GameID
 
 		Sequel::Model.plugin :json_serializer
+		Sequel::Model.plugin :xml_serializer
 		Sequel.datetime_class = DateTime
 
 		class Bonus < Sequel::Model
