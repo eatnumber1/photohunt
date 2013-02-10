@@ -66,6 +66,17 @@
 			</xs:element>
 		</xs:sequence>
 	</xs:complexType>
+	<xs:complexType name="tokensType">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
+			<xs:element name="token">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="token" type="xs:string"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
 	<xs:element name="photohunt">
 		<xs:complexType>
 			<xs:sequence>
@@ -78,6 +89,7 @@
 							<xs:element name="teams" type="teamsType"/>
 							<xs:element name="games" type="gamesType"/>
 							<xs:element name="clues" type="cluesType"/>
+							<xs:element name="tokens" type="tokensType"/>
 							<xs:element name="id" type="xs:string"/>
 						</xs:choice>
 					</xs:complexType>

@@ -51,7 +51,10 @@ module Photohunt
 			end
 
 			def method_missing(m, *args, &block)
-				Nokogiri::XSLT(File.read("xslt/#{self.class.name[/.+::(.+)XML$/,1]}/#{m}.xsl")).transform(get_xml, Nokogiri::XSLT.method(:quote_params).call(*args)).root.to_xml
+				# "a" Works around a bug in ruby
+				a = args
+				a = [] if args.length == 0
+				Nokogiri::XSLT(File.read("xslt/#{self.class.name[/.+::(.+)XML$/,1]}/#{m}.xsl")).transform(get_xml, Nokogiri::XSLT.method(:quote_params).call(*a)).root.to_xml
 			end
 		end
 
@@ -65,6 +68,9 @@ module Photohunt
 		end
 
 		class PhotoXML < XMLModel
+		end
+
+		class TokenXML < XMLModel
 		end
 	end
 end

@@ -175,14 +175,18 @@ module Photohunt
 				end
 
 				get '/tokens' do
-					respond(:validate => false) do |builder, options|
+					respond do |builder, options|
 						DB.transaction do
-							Token.dataset.where(
-								:game => @game,
-								:team_id => params[:team]
-							).to_xml(options.merge(
-								:except => [:game_id, :team_id]
-							))
+							#Token.dataset.where(
+							#	:game => @game,
+							#	:team_id => params[:team]
+							#).to_xml(options.merge(
+							#	:except => [:game_id, :team_id]
+							#))
+							builder << TokenXML.new.tokens(
+								"game" => @game[:id],
+								"team" => params[:team]
+							)
 						end
 					end
 				end
@@ -335,7 +339,8 @@ module Photohunt
 							#)
 							builder << PhotoXML.new.photos(
 								"game" => @game[:id],
-								"team" => params[:team_id])
+								"team" => params[:team_id]
+							)
 						end
 					end
 				end
