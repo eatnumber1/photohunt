@@ -339,7 +339,7 @@ module Photohunt
 							#)
 							builder << PhotoXML.new.photos(
 								"game" => @game[:id],
-								"team" => params[:team_id]
+								"team" => params[:team]
 							)
 						end
 					end
