@@ -57,11 +57,11 @@ module Photohunt
 
 			class Management < CommonAPI
 				helpers do
-					def respond(&block)
+					def respond(options = {}, &block)
 						SuccessResponse.new.to_xml(
-							{
+							options.merge({
 								:name_proc => method(:xml_name_proc).to_proc
-							},
+							}),
 							&block
 						)
 					end
@@ -81,12 +81,12 @@ module Photohunt
 						end
 					end
 
-					def respond_with_id
+					def respond_with_id(options = {})
 						id = nil
 						DB.transaction do
 							id = yield
 						end
-						respond do |builder, options|
+						respond(options) do |builder, options|
 							builder.id id
 						end
 					end
@@ -279,7 +279,7 @@ module Photohunt
 				end
 
 				get '/dump' do
-					respond do |builder, options|
+					respond(:validate => false) do |builder, options|
 						DB.transaction do
 							Game.to_xml(options.merge(
 								:include => {

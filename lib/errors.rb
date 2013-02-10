@@ -1,5 +1,7 @@
 require 'xmlsimple'
 
+require 'photohunt'
+
 module Photohunt
 	module Errors
 		class Response < StandardError
@@ -36,6 +38,11 @@ module Photohunt
 			end
 
 			def to_xml(options = {}, &block)
+				validate = true
+				if options[:validate] != nil then
+					validate = options[:validate]
+					options[:validate] = nil
+				end
 				builder = Nokogiri::XML::Builder.new do |xml|
 					xml.photohunt do
 						to_hash.each do |k, v|
@@ -49,7 +56,23 @@ module Photohunt
 						end
 					end
 				end
-				builder.to_xml
+				xml = builder.to_xml
+				return xml if not validate
+				malformed = false
+				begin
+					Nokogiri::XML::Schema(
+						File.read("photohunt.xsd")
+					).validate(
+						Nokogiri::XML(xml)
+					).each do |error|
+						Photohunt::Logging::LOGGER.error error.message
+						malformed = true
+					end
+				rescue
+					Photohunt::Logging::LOGGER.error $!.message
+				end
+				raise MalformedResponse.new(:message => "XML Does not validate") if malformed
+				xml
 			end
 
 			def to_s
