@@ -78,7 +78,7 @@
 							<xs:element name="teams" type="teamsType"/>
 							<xs:element name="games" type="gamesType"/>
 							<xs:element name="clues" type="cluesType"/>
-							<xs:element name="id" type="xs:integer"/>
+							<xs:element name="id" type="xs:string"/>
 						</xs:choice>
 					</xs:complexType>
 				</xs:element>
