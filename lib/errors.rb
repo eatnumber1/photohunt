@@ -71,7 +71,10 @@ module Photohunt
 				rescue
 					Photohunt::Logging::LOGGER.error $!.message
 				end
-				raise MalformedResponse.new(:message => "XML Does not validate") if malformed
+				if malformed then
+					Photohunt::Logging::LOGGER.info xml
+					raise MalformedResponse.new(:message => "XML Does not validate")
+				end
 				xml
 			end
 

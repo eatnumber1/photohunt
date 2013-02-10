@@ -9,7 +9,7 @@
 		</xs:simpleContent>
 	</xs:complexType>
 	<xs:complexType name="photosType">
-		<xs:sequence maxOccurs="unbounded">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="photo">
 				<xs:complexType>
 					<xs:sequence>
@@ -27,7 +27,7 @@
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="teamsType">
-		<xs:sequence maxOccurs="unbounded">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="team">
 				<xs:complexType>
 					<xs:sequence>
@@ -39,7 +39,7 @@
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="gamesType">
-		<xs:sequence maxOccurs="unbounded">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="game">
 				<xs:complexType>
 					<xs:sequence>
@@ -54,7 +54,7 @@
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="cluesType">
-		<xs:sequence maxOccurs="unbounded">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="clue">
 				<xs:complexType>
 					<xs:sequence>

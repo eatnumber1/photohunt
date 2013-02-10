@@ -11,6 +11,7 @@ require 'photohunt'
 require 'errors'
 require 'database'
 require 'models'
+require 'xml'
 
 module Photohunt
 	module Web
@@ -56,6 +57,8 @@ module Photohunt
 			end
 
 			class Management < CommonAPI
+				include Photohunt::XML
+
 				helpers do
 					def respond(options = {}, &block)
 						SuccessResponse.new.to_xml(
@@ -79,6 +82,7 @@ module Photohunt
 						params.each do |k, v|
 							obj[k] = v if not except.include? k.to_sym
 						end
+						XMLModel.invalidate
 					end
 
 					def respond_with_id(options = {})
@@ -109,6 +113,7 @@ module Photohunt
 								:max_judged_photos => params[:max_judged_photos]
 							)
 						end
+						XMLModel.invalidate
 						game
 					end
 				end
@@ -116,7 +121,8 @@ module Photohunt
 				get '/games' do
 					respond do |builder, options|
 						DB.transaction do
-							Game.to_xml options
+							builder << GameXML.new.games
+							#Game.to_xml options
 						end
 					end
 				end
@@ -157,6 +163,7 @@ module Photohunt
 								:name => params[:name]
 							)
 						end
+						XMLModel.invalidate
 						team
 					end
 				end
@@ -168,9 +175,10 @@ module Photohunt
 				get '/teams' do
 					respond do |builder, options|
 						DB.transaction do
-							@game.teams_dataset.to_xml(options.merge(
-								:except => :game_id
-							))
+							#@game.teams_dataset.to_xml(options.merge(
+							#	:except => :game_id
+							#))
+							builder << TeamXML.new.teams("game" => @game[:id])
 						end
 					end
 				end
@@ -214,6 +222,7 @@ module Photohunt
 								:points => params[:points]
 							)
 						end
+						XMLModel.invalidate
 						clue
 					end
 				end
@@ -225,9 +234,12 @@ module Photohunt
 				get '/clues' do
 					respond do |builder, options|
 						DB.transaction do
-							@game.clues_dataset.to_xml(options.merge(
-								:except => :game_id
-							))
+							#@game.clues_dataset.to_xml(options.merge(
+							#	:except => :game_id
+							#))
+							builder << ClueXML.new.clues(
+								"game" => @game[:id]
+							)
 						end
 					end
 				end
@@ -235,6 +247,7 @@ module Photohunt
 				post '/clues' do
 					respond_with_id do
 						(create_clue params)[:id]
+						XMLModel.invalidate
 					end
 				end
 
@@ -242,6 +255,7 @@ module Photohunt
 					DB.transaction do
 						Clue[params[:id]].destroy
 					end
+					XMLModel.invalidate
 					respond
 				end
 
@@ -253,6 +267,7 @@ module Photohunt
 						else
 							clue = Clue.dataset.for_update[:id => params[:id]]
 							update_from_params clue, params, [:token, :game]
+							XMLModel.invalidate
 							clue.save
 						end
 						clue[:id]
@@ -266,9 +281,12 @@ module Photohunt
 				get '/photos' do
 					respond do |builder, options|
 						DB.transaction do
-							Team[params[:team_id]].photos_dataset.to_xml(
-								options.merge(:except => [:team_id, :data])
-							)
+							#Team[params[:team_id]].photos_dataset.to_xml(
+							#	options.merge(:except => [:team_id, :data])
+							#)
+							builder << PhotoXML.new.photos(
+								"game" => @game[:id],
+								"team" => params[:team_id])
 						end
 					end
 				end
@@ -382,16 +400,6 @@ module Photohunt
 						end
 					end
 				end
-
-				#before '*.json' do
-				#	content_type :json
-				#	pass unless request.accept? 'application/json'
-				#	@game = Game[GAME_ID]
-				#end
-
-				#before '*.xml' do
-				#	content_type :xml
-				#end
 
 				before '/info' do
 					authenticate
