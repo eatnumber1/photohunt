@@ -137,6 +137,7 @@ module Photohunt
 					DB.transaction do
 						Game[params[:id]].destroy
 					end
+					XMLModel.invalidate
 					respond
 				end
 
@@ -152,6 +153,55 @@ module Photohunt
 						end
 						game[:id]
 					end
+				end
+
+				helpers do
+					def create_token(params)
+						token = nil
+						DB.transaction do
+							token = Token.create(
+								:team_id => params[:team],
+								:game => @game,
+								:token => params[:team_token]
+							)
+						end
+						XMLModel.invalidate
+						token
+					end
+				end
+
+				before '/tokens' do
+					prepare_game
+				end
+
+				get '/tokens' do
+					respond(:validate => false) do |builder, options|
+						DB.transaction do
+							Token.dataset.where(
+								:game => @game,
+								:team_id => params[:team]
+							).to_xml(options.merge(
+								:except => [:game_id, :team_id]
+							))
+						end
+					end
+				end
+
+				post '/tokens' do
+					create_token params
+					respond
+				end
+
+				delete '/tokens' do
+					DB.transaction do
+						Token.dataset.where(
+							:game => @game,
+							:team_id => params[:team],
+							:token => params[:team_token]
+						).destroy
+					end
+					XMLModel.invalidate
+					respond
 				end
 
 				helpers do
@@ -193,6 +243,7 @@ module Photohunt
 					DB.transaction do
 						Team[params[:id]].destroy
 					end
+					XMLModel.invalidate
 					respond
 				end
 
@@ -247,7 +298,6 @@ module Photohunt
 				post '/clues' do
 					respond_with_id do
 						(create_clue params)[:id]
-						XMLModel.invalidate
 					end
 				end
 
@@ -267,7 +317,6 @@ module Photohunt
 						else
 							clue = Clue.dataset.for_update[:id => params[:id]]
 							update_from_params clue, params, [:token, :game]
-							XMLModel.invalidate
 							clue.save
 						end
 						clue[:id]
