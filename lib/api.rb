@@ -121,7 +121,7 @@ module Photohunt
 				get '/games' do
 					respond do |builder, options|
 						DB.transaction do
-							builder << GameXML.new.games
+							builder << GameXML.new.games("empty" => nil)
 							#Game.to_xml options
 						end
 					end
