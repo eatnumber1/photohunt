@@ -268,6 +268,67 @@ module Photohunt
 				end
 
 				helpers do
+					def create_bonus(params)
+						bonus = nil
+						DB.transaction do
+							bonus = Bonus.create(
+								:clue_id => params[:clue],
+								:description => params[:description],
+								:points => params[:points]
+							)
+						end
+						XMLModel.invalidate
+						bonus
+					end
+				end
+
+				before '/bonuses' do
+					prepare_game
+				end
+
+				get '/bonuses' do
+					respond do |builder, options|
+						DB.transaction do
+							#Clue[params[:clue]].bonuses_dataset.to_xml(options.merge(
+							#	:except => :clue_id
+							#))
+							builder << BonusXML.new.bonuses(
+								"game" => @game[:id],
+								"clue" => params[:clue]
+							)
+						end
+					end
+				end
+
+				post '/bonuses' do
+					respond_with_id do
+						(create_bonus params)[:id]
+					end
+				end
+
+				delete '/bonuses' do
+					DB.transaction do
+						Bonus[params[:id]].destroy
+					end
+					XMLModel.invalidate
+					respond
+				end
+
+				put '/bonuses' do
+					respond_with_id do
+						bonus = nil
+						if Bonus[params[:id]] == nil then
+							bonus = create_bonus params
+						else
+							bonus = Bonus.dataset.for_update[:id => params[:id]]
+							update_from_params bonus, params, [:token, :game]
+							bonus.save
+						end
+						bonus[:id]
+					end
+				end
+
+				helpers do
 					def create_clue(params)
 						clue = nil
 						DB.transaction do
@@ -290,7 +351,12 @@ module Photohunt
 					respond do |builder, options|
 						DB.transaction do
 							#@game.clues_dataset.to_xml(options.merge(
-							#	:except => :game_id
+							#	:except => :game_id,
+							#	:include => {
+							#		:bonuses => options.merge(
+							#			:except => :clue_id
+							#		)
+							#	}
 							#))
 							builder << ClueXML.new.clues(
 								"game" => @game[:id]
@@ -331,12 +397,29 @@ module Photohunt
 					prepare_game
 				end
 
+				put '/photos' do
+					photo = Photo.dataset.for_update[:guid => params[:guid]]
+					update_from_params photo, params, [:guid, :data, :judge, :notes, :mime, :exposure, :submission, :game, :token]
+					photo.save
+					respond
+				end
+
 				get '/photos' do
 					respond do |builder, options|
 						DB.transaction do
-							#Team[params[:team_id]].photos_dataset.to_xml(
-							#	options.merge(:except => [:team_id, :data])
-							#)
+							#Team[params[:team]].photos_dataset.to_xml(options.merge(
+							#	:include => {
+							#		:clue_completions => options.merge(
+							#			:include => {
+							#				:bonus_completions => options.merge(
+							#					:except => :clue_completion_id
+							#				)
+							#			},
+							#			:except => :photo_id
+							#		)
+							#	},
+							#	:except => [:team_id, :data]
+							#))
 							builder << PhotoXML.new.photos(
 								"game" => @game[:id],
 								"team" => params[:team]
@@ -360,11 +443,28 @@ module Photohunt
 											:tokens => options.merge(
 												:except => [:team_id, :game_id]
 											),
-											:photos => options
+											:photos => options.merge(
+												:include => {
+													:clue_completions => options.merge(
+														:include => {
+															:bonus_completions => options.merge(
+																:except => :clue_completion_id
+															)
+														},
+														:except => :photo_id
+													)
+												}
+											)
 										},
 										:except => :game_id
 									),
-									:clues => options
+									:clues => options.merge(
+										:include => {
+											:bonuses => options.merge(
+												:except => :clue_id
+											)
+										}
+									)
 								}
 							))
 							JudgesToken.to_xml(options)

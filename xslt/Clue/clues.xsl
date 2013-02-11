@@ -9,6 +9,15 @@
 							<id><xsl:value-of select="id"/></id>
 							<description><xsl:value-of select="description"/></description>
 							<points><xsl:value-of select="points"/></points>
+							<bonuses>
+								<xsl:for-each select="bonuses/bonus">
+									<bonus>
+										<id><xsl:value-of select="id"/></id>
+										<description><xsl:value-of select="description"/></description>
+										<points><xsl:value-of select="points"/></points>
+									</bonus>
+								</xsl:for-each>
+							</bonuses>
 						</clue>
 					</xsl:for-each>
 				</xsl:if>

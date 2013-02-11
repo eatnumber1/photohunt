@@ -8,6 +8,30 @@
 			</xs:extension>
 		</xs:simpleContent>
 	</xs:complexType>
+	<xs:complexType name="bonusCompletionsType">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
+			<xs:element name="bonus_completion">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="bonus_id" type="xs:integer"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="clueCompletionsType">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
+			<xs:element name="clue_completion">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="id" type="xs:integer"/>
+						<xs:element name="clue_id" type="xs:integer"/>
+						<xs:element name="bonus_completions" type="bonusCompletionsType"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
 	<xs:complexType name="photosType">
 		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="photo">
@@ -21,6 +45,10 @@
 						<xs:element name="mime" type="xs:string"/>
 						<xs:element name="exposure" type="nillableString"/>
 						<xs:element name="submission" type="xs:dateTime"/>
+						<!-- Note: This cannot be an xs:integer because an xs:integer must be present -->
+						<xs:element name="judges_points" type="nillableString"/>
+						<xs:element name="judges_notes" type="nillableString"/>
+						<xs:element name="clue_completions" type="clueCompletionsType"/>
 					</xs:sequence>
 				</xs:complexType>
 			</xs:element>
@@ -53,6 +81,20 @@
 			</xs:element>
 		</xs:sequence>
 	</xs:complexType>
+	<xs:complexType name="bonusesType">
+		<xs:sequence maxOccurs="unbounded" minOccurs="0">
+			<xs:element name="bonus">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="id" type="xs:string"/>
+						<xs:element name="clue_id" type="xs:string" minOccurs="0"/>
+						<xs:element name="description" type="xs:string"/>
+						<xs:element name="points" type="xs:integer"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
 	<xs:complexType name="cluesType">
 		<xs:sequence maxOccurs="unbounded" minOccurs="0">
 			<xs:element name="clue">
@@ -61,6 +103,7 @@
 						<xs:element name="id" type="xs:string"/>
 						<xs:element name="description" type="xs:string"/>
 						<xs:element name="points" type="xs:integer"/>
+						<xs:element name="bonuses" type="bonusesType"/>
 					</xs:sequence>
 				</xs:complexType>
 			</xs:element>
@@ -91,6 +134,7 @@
 							<xs:element name="clues" type="cluesType"/>
 							<xs:element name="tokens" type="tokensType"/>
 							<xs:element name="id" type="xs:string"/>
+							<xs:element name="bonuses" type="bonusesType"/>
 						</xs:choice>
 					</xs:complexType>
 				</xs:element>

@@ -67,6 +67,8 @@ module Photohunt
 				else
 					DateTime :submission, :default => "datetime('now','localtime')".lit
 				end
+				Integer :judges_points
+				String :judges_notes, :text => true
 			end
 
 			DB.create_table? :clues_tags do

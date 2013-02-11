@@ -25,11 +25,28 @@ module Photohunt
 											:tokens => options.merge(
 												:except => [:team_id, :game_id]
 											),
-											:photos => options
+											:photos => options.merge(
+												:include => {
+													:clue_completions => options.merge(
+														:include => {
+															:bonus_completions => options.merge(
+																:except => :clue_completion_id
+															)
+														},
+														:except => :photo_id
+													)
+												}
+											)
 										},
 										:except => :game_id
 									),
-									:clues => options
+									:clues => options.merge(
+										:include => {
+											:bonuses => options.merge(
+												:exclude => :clue_id
+											)
+										}
+									)
 								}
 							))
 							JudgesToken.to_xml(options)
@@ -71,6 +88,9 @@ module Photohunt
 		end
 
 		class TokenXML < XMLModel
+		end
+
+		class BonusXML < XMLModel
 		end
 	end
 end
