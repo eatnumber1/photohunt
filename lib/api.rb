@@ -399,7 +399,7 @@ module Photohunt
 
 				put '/photos' do
 					photo = Photo.dataset.for_update[:guid => params[:guid]]
-					update_from_params photo, params, [:guid, :data, :judge, :notes, :mime, :exposure, :submission, :game, :token]
+					update_from_params photo, params, [:guid, :data, :judge, :notes, :mime, :exposure, :submission, :game, :token, :team]
 					photo.save
 					respond
 				end
